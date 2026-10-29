@@ -139,6 +139,7 @@ body.focus #menuWrap{display:none!important}
     <button data-view="atom">Atom model</button>
     <button data-view="mol">Hydrocarbons</button>
     <button data-view="amino">Amino acids</button>
+    <button data-view="physics">Physics lab</button>
     <button data-view="table">Periodic table</button>
   </div>
   <div id="uiMenu" class="glass" hidden>
@@ -175,6 +176,14 @@ body.focus #menuWrap{display:none!important}
       </div>
       <div class="chips" id="pickHeads" role="group" aria-label="Categories"></div>
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
+    </div>
+    <div class="sec" id="physUI" hidden>
+      <div class="chips" id="physChips" role="group" aria-label="Physics scenario">
+        <button class="chip wide" type="button" data-scene="projectile">Projectile</button>
+        <button class="chip wide" type="button" data-scene="magnetism">Magnetism</button>
+        <button class="chip wide" type="button" data-scene="electricity">Electricity</button>
+      </div>
+      <div id="physControls" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
     <div class="sec" id="tableUI" hidden>
       <div class="legend" id="tableLegend" aria-label="Element categories"></div>
@@ -305,8 +314,8 @@ body.focus #menuWrap{display:none!important}
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
-  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group();
-  scene.add(atomRoot, molRoot, tableRoot);
+  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), physRoot = new THREE.Group();
+  scene.add(atomRoot, molRoot, tableRoot, physRoot);
   const partGeo = new THREE.SphereGeometry(0.2, 24, 16), partGeoLo = new THREE.SphereGeometry(0.2, 12, 8), eGeo = new THREE.SphereGeometry(0.14, 16, 12);
   const unitGeo = new THREE.SphereGeometry(1, 32, 20), cylGeo = new THREE.CylinderGeometry(0.07,0.07,1,12);
   const mP = new THREE.MeshStandardMaterial({color:0xff5a6e, emissive:0x4a0f18, roughness:.4});
@@ -600,7 +609,398 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
-  // ---------- Periodic table ----------
+  // ---------- Physics lab ----------
+  const PHYS = {
+    scenario: 'projectile',
+    data: {
+      proj: { speed: 12, angle: 45, running: false, velocity: new V(), t: 0, trailPts: [], peakY: 0 },
+      mag:  { distance: 5, attract: true },
+      elec: { distance: 5, attract: true }
+    },
+    objects: {}
+  };
+
+  function buildPhysics(){
+    clearRoot(physRoot);
+    PHYS.objects = {};
+
+    if(PHYS.scenario === 'projectile'){
+      buildProjectileScene();
+      defR = 22; goal.target.set(4, 4, 0);
+    } else if(PHYS.scenario === 'magnetism'){
+      buildMagnetScene();
+      defR = 13; goal.target.set(0, 0, 0);
+    } else if(PHYS.scenario === 'electricity'){
+      buildElectricScene();
+      defR = 13; goal.target.set(0, 0, 0);
+    }
+    goal.radius = defR;
+    goal.theta = 0.45; goal.phi = 1.3;
+
+    updatePhysChips();
+    updatePhysControls();
+  }
+
+  function buildProjectileScene(){
+    const d = PHYS.data.proj;
+    d.running = false; d.t = 0; d.trailPts = []; d.peakY = 0; d.velocity.set(0,0,0);
+
+    // Ground grid
+    const grid = new THREE.GridHelper(40, 40, 0x3a5a7a, 0x1e3450);
+    grid.position.y = 0;
+    physRoot.add(grid);
+
+    // Ball
+    const ball = new THREE.Mesh(unitGeo, vivid(0xff9f1c));
+    ball.scale.setScalar(0.4);
+    ball.position.set(-8, 0.4, 0);
+    physRoot.add(ball);
+
+    // Trail
+    const trailGeo = new THREE.BufferGeometry();
+    trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(600*3), 3));
+    trailGeo.setDrawRange(0, 0);
+    const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({color:0xffb86b, transparent:true, opacity:0.85}));
+    trail.frustumCulled = false;
+    physRoot.add(trail);
+
+    // Arrows
+    const velArrow = new THREE.ArrowHelper(new V(1,0,0), new V(0,0,0), 1, 0x4ade80, 0.35, 0.18);
+    velArrow.visible = false;
+    physRoot.add(velArrow);
+
+    const gravArrow = new THREE.ArrowHelper(new V(0,-1,0), new V(0,0,0), 1.5, 0xff3b3b, 0.3, 0.15);
+    gravArrow.visible = false;
+    physRoot.add(gravArrow);
+
+    PHYS.objects = { ball, trail, velArrow, gravArrow };
+
+    $('title').textContent = 'Projectile motion';
+    $('sub').textContent = 'Set the launch speed and angle, then tap Launch · gravity pulls down at 9.81 m/s²';
+    showCard('Projectile motion', [
+      ['Gravity', '9.81 m/s² (down)'],
+      ['Launch', d.speed + ' m/s at ' + d.angle + '°']
+    ], 'A projectile moves with constant horizontal velocity and a vertical velocity that changes at a constant rate because of gravity.');
+  }
+
+  function launchProjectile(){
+    const d = PHYS.data.proj;
+    const a = d.angle * Math.PI / 180;
+    d.velocity.set(Math.cos(a) * d.speed, Math.sin(a) * d.speed, 0);
+    d.running = true;
+    d.t = 0; d.peakY = 0; d.trailPts = [];
+
+    const o = PHYS.objects;
+    if(o.ball) o.ball.position.set(-8, 0.4, 0);
+    if(o.trail){ o.trail.geometry.setDrawRange(0, 0); }
+    if(o.velArrow) o.velArrow.visible = true;
+    if(o.gravArrow) o.gravArrow.visible = true;
+  }
+  function resetProjectile(){
+    const d = PHYS.data.proj;
+    d.running = false; d.t = 0; d.trailPts = []; d.peakY = 0; d.velocity.set(0,0,0);
+    const o = PHYS.objects;
+    if(o.ball) o.ball.position.set(-8, 0.4, 0);
+    if(o.trail){ o.trail.geometry.setDrawRange(0, 0); }
+    if(o.velArrow) o.velArrow.visible = false;
+    if(o.gravArrow) o.gravArrow.visible = false;
+    showCard('Projectile motion', [
+      ['Gravity', '9.81 m/s² (down)'],
+      ['Launch', d.speed + ' m/s at ' + d.angle + '°']
+    ], 'Tap Launch to fire the ball. Change speed or angle to see how the trajectory changes.');
+  }
+  function updateProjectile(dt){
+    const d = PHYS.data.proj, o = PHYS.objects;
+    if(!d.running || !o.ball) return;
+
+    d.velocity.y -= 9.81 * dt;
+    o.ball.position.x += d.velocity.x * dt;
+    o.ball.position.y += d.velocity.y * dt;
+    d.t += dt;
+    if(o.ball.position.y > d.peakY) d.peakY = o.ball.position.y;
+
+    if(o.ball.position.y <= 0.4){
+      o.ball.position.y = 0.4;
+      d.running = false;
+      const range = o.ball.position.x + 8;
+      showCard('Landed', [
+        ['Flight time', d.t.toFixed(2) + ' s'],
+        ['Range', range.toFixed(2) + ' m'],
+        ['Peak height', d.peakY.toFixed(2) + ' m']
+      ], 'The path is a parabola. Horizontal velocity stayed constant; vertical velocity changed at 9.81 m/s² downward.');
+      if(o.velArrow) o.velArrow.visible = false;
+      if(o.gravArrow) o.gravArrow.visible = false;
+      return;
+    }
+
+    d.trailPts.push(o.ball.position.clone());
+    if(d.trailPts.length > 600) d.trailPts.shift();
+    if(o.trail){
+      const pos = o.trail.geometry.attributes.position;
+      for(let i = 0; i < d.trailPts.length; i++){
+        pos.setXYZ(i, d.trailPts[i].x, d.trailPts[i].y, d.trailPts[i].z);
+      }
+      pos.needsUpdate = true;
+      o.trail.geometry.setDrawRange(0, d.trailPts.length);
+    }
+    if(o.velArrow){
+      o.velArrow.position.copy(o.ball.position);
+      const vLen = d.velocity.length();
+      if(vLen > 0.1){
+        o.velArrow.setDirection(d.velocity.clone().normalize());
+        o.velArrow.setLength(Math.min(vLen * 0.22, 3.2), 0.35, 0.18);
+      }
+    }
+    if(o.gravArrow){
+      o.gravArrow.position.copy(o.ball.position);
+      o.gravArrow.setDirection(new V(0, -1, 0));
+      o.gravArrow.setLength(1.6, 0.3, 0.15);
+    }
+  }
+
+  function createBarMagnet(northRight){
+    const g = new THREE.Group();
+    const nMat = new THREE.MeshStandardMaterial({color:0xff3355, emissive:0x440000, emissiveIntensity:0.4, roughness:0.4});
+    const sMat = new THREE.MeshStandardMaterial({color:0x3355ff, emissive:0x000044, emissiveIntensity:0.4, roughness:0.4});
+    const nBox = new THREE.Mesh(new THREE.BoxGeometry(1, 0.6, 0.6), nMat);
+    nBox.position.x = northRight ? 0.5 : -0.5;
+    const sBox = new THREE.Mesh(new THREE.BoxGeometry(1, 0.6, 0.6), sMat);
+    sBox.position.x = northRight ? -0.5 : 0.5;
+    // N / S labels via small spheres
+    const nDot = new THREE.Mesh(unitGeo, vivid(0xffe14d, 0.5));
+    nDot.scale.setScalar(0.08);
+    nDot.position.set(northRight ? 0.9 : -0.9, 0, 0);
+    g.add(nBox, sBox, nDot);
+    return g;
+  }
+
+  function buildMagnetScene(){
+    const d = PHYS.data.mag;
+    const mag1 = createBarMagnet(true);
+    const mag2 = createBarMagnet(true);
+    physRoot.add(mag1, mag2);
+
+    const force1 = new THREE.ArrowHelper(new V(1,0,0), new V(0,0,0), 1.5, 0x4cc9f0, 0.35, 0.18);
+    const force2 = new THREE.ArrowHelper(new V(-1,0,0), new V(0,0,0), 1.5, 0x4cc9f0, 0.35, 0.18);
+    physRoot.add(force1, force2);
+
+    const fieldLines = new THREE.Group();
+    physRoot.add(fieldLines);
+
+    PHYS.objects = { mag1, mag2, force1, force2, fieldLines };
+    mag2.rotation.y = d.attract ? 0 : Math.PI;
+
+    $('title').textContent = 'Magnetism';
+    $('sub').textContent = 'Two bar magnets · ' + (d.attract ? 'opposite poles attract' : 'like poles repel') + ' · move the distance slider';
+    updateMagnetPositions();
+  }
+
+  function updateMagnetPositions(){
+    const d = PHYS.data.mag, o = PHYS.objects;
+    if(!o.mag1) return;
+    const half = d.distance / 2;
+    o.mag1.position.set(-half, 0, 0);
+    o.mag2.position.set(half, 0, 0);
+
+    const dir = d.attract ? 1 : -1;
+    o.force1.position.set(-half + 1.05, 0, 0);
+    o.force1.setDirection(new V(dir, 0, 0));
+    o.force2.position.set(half - 1.05, 0, 0);
+    o.force2.setDirection(new V(-dir, 0, 0));
+    o.force1.setLength(d.attract ? 1.8 : 1.2, 0.35, 0.18);
+    o.force2.setLength(d.attract ? 1.8 : 1.2, 0.35, 0.18);
+
+    // Rebuild field lines
+    while(o.fieldLines.children.length){
+      const c = o.fieldLines.children[0];
+      o.fieldLines.remove(c);
+      if(c.geometry) c.geometry.dispose();
+      if(c.material) c.material.dispose();
+    }
+    const lineMat = new THREE.MeshBasicMaterial({color:0x4cc9f0, transparent:true, opacity:0.55});
+    const magnetField = (baseX, outwardDir) => {
+      for(let i=0;i<3;i++){
+        const start = new V(baseX, (i-1)*0.18, (i-1)*0.18);
+        const end = start.clone().add(new V(outwardDir * 2.2, (i-1)*0.6, (i-1)*0.6));
+        const mid = start.clone().add(end).multiplyScalar(0.5);
+        mid.y += 0.9;
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        o.fieldLines.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.02, 4, false), lineMat));
+      }
+    };
+    if(d.attract){
+      // Bridge from mag1's N (right side) to mag2's S (left side)
+      for(let i=0;i<3;i++){
+        const start = new V(-half + 1, (i-1)*0.18, (i-1)*0.18);
+        const end = new V(half - 1, (i-1)*0.18, (i-1)*0.18);
+        const mid = start.clone().add(end).multiplyScalar(0.5);
+        mid.y += 0.9 + i*0.15;
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        o.fieldLines.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.02, 4, false), lineMat));
+      }
+    } else {
+      magnetField(-half - 1, -1);
+      magnetField(half + 1, 1);
+    }
+
+    showCard('Magnetism', [
+      ['Poles', d.attract ? 'N ↔ S (attracting)' : 'N ↔ N (repelling)'],
+      ['Distance', d.distance.toFixed(1)],
+      ['Force', d.attract ? 'Attractive' : 'Repulsive']
+    ], d.attract ? 'Opposite magnetic poles attract. The curved lines show the field flowing from N to S.' : 'Like poles repel. Each magnet\'s field curls away from the other.');
+  }
+  function flipMagnetPoles(){
+    const d = PHYS.data.mag;
+    d.attract = !d.attract;
+    if(PHYS.objects.mag2) PHYS.objects.mag2.rotation.y = d.attract ? 0 : Math.PI;
+    updateMagnetPositions();
+  }
+
+  function buildElectricScene(){
+    const d = PHYS.data.elec;
+    const ch1 = new THREE.Mesh(unitGeo, vivid(0xff3355, 0.45));
+    const ch2 = new THREE.Mesh(unitGeo, vivid(0x3355ff, 0.45));
+    ch1.scale.setScalar(0.55); ch2.scale.setScalar(0.55);
+    physRoot.add(ch1, ch2);
+
+    const force1 = new THREE.ArrowHelper(new V(1,0,0), new V(0,0,0), 1.5, 0x4cc9f0, 0.35, 0.18);
+    const force2 = new THREE.ArrowHelper(new V(-1,0,0), new V(0,0,0), 1.5, 0x4cc9f0, 0.35, 0.18);
+    physRoot.add(force1, force2);
+
+    const fieldLines = new THREE.Group();
+    physRoot.add(fieldLines);
+
+    PHYS.objects = { ch1, ch2, force1, force2, fieldLines };
+
+    $('title').textContent = 'Electricity';
+    $('sub').textContent = 'Two point charges · ' + (d.attract ? 'opposite charges attract' : 'like charges repel') + ' · adjust the distance';
+    updateElectricPositions();
+  }
+
+  function updateElectricPositions(){
+    const d = PHYS.data.elec, o = PHYS.objects;
+    if(!o.ch1) return;
+    const half = d.distance / 2;
+    o.ch1.position.set(-half, 0, 0);
+    o.ch2.position.set(half, 0, 0);
+
+    o.ch2.material = vivid(d.attract ? 0x3355ff : 0xff3355, 0.45);
+
+    const dir = d.attract ? 1 : -1;
+    o.force1.position.set(-half + 0.75, 0, 0);
+    o.force1.setDirection(new V(dir, 0, 0));
+    o.force2.position.set(half - 0.75, 0, 0);
+    o.force2.setDirection(new V(-dir, 0, 0));
+    o.force1.setLength(d.attract ? 1.8 : 1.2, 0.35, 0.18);
+    o.force2.setLength(d.attract ? 1.8 : 1.2, 0.35, 0.18);
+
+    while(o.fieldLines.children.length){
+      const c = o.fieldLines.children[0];
+      o.fieldLines.remove(c);
+      if(c.geometry) c.geometry.dispose();
+      if(c.material) c.material.dispose();
+    }
+    const lineMat = new THREE.MeshBasicMaterial({color:0x4cc9f0, transparent:true, opacity:0.55});
+    if(d.attract){
+      for(let i=0;i<4;i++){
+        const start = new V(-half, (i-1.5)*0.2, (i-1.5)*0.2);
+        const end = new V(half, (i-1.5)*0.2, (i-1.5)*0.2);
+        const mid = start.clone().add(end).multiplyScalar(0.5);
+        mid.y += 1.0 + i*0.15;
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        o.fieldLines.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.02, 4, false), lineMat));
+      }
+    } else {
+      for(let side = 0; side < 2; side++){
+        const base = side === 0 ? -half : half;
+        const outDir = side === 0 ? -1 : 1;
+        for(let i = 0; i < 3; i++){
+          const start = new V(base, (i-1)*0.2, (i-1)*0.2);
+          const end = start.clone().add(new V(outDir * 2.2, (i-1)*0.6, (i-1)*0.6));
+          const mid = start.clone().add(end).multiplyScalar(0.5);
+          mid.y += 1.0;
+          const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+          o.fieldLines.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.02, 4, false), lineMat));
+        }
+      }
+    }
+
+    showCard('Electricity', [
+      ['Charges', d.attract ? '+ and −  (attracting)' : '+ and +  (repelling)'],
+      ['Distance', d.distance.toFixed(1)],
+      ['Force', d.attract ? 'Attractive' : 'Repulsive']
+    ], d.attract ? 'Opposite charges attract. Field lines leave the positive charge and curve into the negative one.' : 'Like charges repel. Each charge\'s field pushes outward, curving away from the other.');
+  }
+  function flipElecCharge(){
+    const d = PHYS.data.elec;
+    d.attract = !d.attract;
+    updateElectricPositions();
+  }
+
+  function updatePhysics(dt){
+    if(PHYS.scenario === 'projectile') updateProjectile(dt);
+    // Magnetism / electricity are mostly static; no per-frame updates needed
+  }
+
+  function updatePhysChips(){
+    document.querySelectorAll('#physChips [data-scene]').forEach(b=>{
+      b.setAttribute('aria-pressed', b.dataset.scene === PHYS.scenario ? 'true' : 'false');
+    });
+  }
+
+  function addPhysSlider(parent, label, min, max, value, unit, onChange){
+    const row = document.createElement('div');
+    row.className = 'speed';
+    const lbl = document.createElement('label');
+    lbl.textContent = label;
+    const inp = document.createElement('input');
+    inp.type = 'range'; inp.min = min; inp.max = max;
+    inp.step = (max - min) / 100; inp.value = value;
+    const out = document.createElement('output');
+    out.textContent = (+value).toFixed(1) + unit;
+    inp.addEventListener('input', ()=>{
+      out.textContent = (+inp.value).toFixed(1) + unit;
+      onChange(+inp.value);
+    });
+    row.append(lbl, inp, out);
+    parent.appendChild(row);
+  }
+  function addPhysButton(parent, label, onClick){
+    const b = document.createElement('button');
+    b.className = 'chip wide'; b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', onClick);
+    parent.appendChild(b);
+    return b;
+  }
+
+  function updatePhysControls(){
+    const box = $('physControls');
+    box.innerHTML = '';
+    if(PHYS.scenario === 'projectile'){
+      const d = PHYS.data.proj;
+      addPhysSlider(box, 'Speed', 5, 20, d.speed, ' m/s', v => { d.speed = v; });
+      addPhysSlider(box, 'Angle', 15, 75, d.angle, '°', v => { d.angle = v; });
+      addPhysButton(box, 'Launch', launchProjectile);
+      addPhysButton(box, 'Reset', resetProjectile);
+    } else if(PHYS.scenario === 'magnetism'){
+      const d = PHYS.data.mag;
+      addPhysSlider(box, 'Distance', 2.5, 8, d.distance, '', v => { d.distance = v; updateMagnetPositions(); });
+      addPhysButton(box, 'Flip poles', flipMagnetPoles);
+    } else if(PHYS.scenario === 'electricity'){
+      const d = PHYS.data.elec;
+      addPhysSlider(box, 'Distance', 2.5, 8, d.distance, '', v => { d.distance = v; updateElectricPositions(); });
+      addPhysButton(box, 'Flip charge', flipElecCharge);
+    }
+  }
+
+  $('physChips').addEventListener('click', e=>{
+    const b = e.target.closest('[data-scene]');
+    if(!b) return;
+    PHYS.scenario = b.dataset.scene;
+    buildPhysics();
+  });
+
+  // ---------- Periodic table (per-column sections + smooth spreading) ----------
   const CATS=['Alkali metal','Alkaline earth','Transition metal','Post-transition','Metalloid','Nonmetal','Halogen','Noble gas','Lanthanide','Actinide'];
   const CATC=[0xf87171,0xfb923c,0x6366f1,0x2dd4bf,0xa78bfa,0x4ade80,0xa3e635,0xf472b6,0x38bdf8,0xe879f9];
   function catOf(Z){
@@ -631,93 +1031,104 @@ body.focus #menuWrap{display:none!important}
     if(Z<=103) return [Z-86, 9];
     return [Z-100, 7];
   }
+
   function sectionOf(Z){
     if(Z>=57 && Z<=71) return 'lan';
     if(Z>=89 && Z<=103) return 'act';
-    const col = posOf(Z)[0];
-    if(col === 1) return 'g1';
-    if(col === 2) return 'g2';
-    if(col >= 3 && col <= 12) return 'd';
-    return 'g' + col;
+    return 'c' + posOf(Z)[0];
   }
-  const SECTION_DIR = {
-    g1:{x:-1,y:0,z:0}, g2:{x:-1,y:0,z:0},
-    g13:{x:1,y:0,z:0}, g14:{x:1,y:0,z:0}, g15:{x:1,y:0,z:0}, g16:{x:1,y:0,z:0},
-    g17:{x:1,y:0,z:0}, g18:{x:1,y:0,z:0},
-    d:{x:0,y:0,z:1.2}, lan:{x:0,y:0,z:1.2}, act:{x:0,y:0,z:1.2}
-  };
+
+  const SECTION_DIR = {};
+  for(let c = 1; c <= 18; c++){
+    if(c <= 2) SECTION_DIR['c' + c] = {x:-1, y:0, z:0};
+    else if(c <= 12) SECTION_DIR['c' + c] = {x:0, y:0, z:1.3};
+    else SECTION_DIR['c' + c] = {x:1, y:0, z:0};
+  }
+  SECTION_DIR.lan = {x:0, y:0, z:1.3};
+  SECTION_DIR.act = {x:0, y:0, z:1.3};
+
+  function familyOfCol(col){
+    if(col <= 2) return 'left';
+    if(col <= 12) return 'up';
+    return 'right';
+  }
+
   const SECTION_INFO = {
-    g1:{name:'Group 1 · Alkali metals', desc:'Soft, highly reactive metals that react vigorously with water.'},
-    g2:{name:'Group 2 · Alkaline earth metals', desc:'Reactive metals, harder than group 1.'},
-    d:{name:'Transition metals', desc:'Hard, dense metals with variable oxidation states.'},
-    g13:{name:'Group 13 · Boron group', desc:'Includes aluminium and gallium.'},
-    g14:{name:'Group 14 · Carbon group', desc:'Includes carbon, silicon and tin.'},
-    g15:{name:'Group 15 · Pnictogens', desc:'Includes nitrogen and phosphorus.'},
-    g16:{name:'Group 16 · Chalcogens', desc:'Includes oxygen and sulfur.'},
-    g17:{name:'Group 17 · Halogens', desc:'Highly reactive nonmetals that form salts.'},
-    g18:{name:'Group 18 · Noble gases', desc:'Full outer shells — inert and stable.'},
+    c1:{name:'Group 1 · Alkali metals', desc:'Soft, highly reactive metals that react vigorously with water.'},
+    c2:{name:'Group 2 · Alkaline earth metals', desc:'Reactive metals, harder than group 1.'},
+    c3:{name:'Group 3 · Scandium group', desc:'Scandium, yttrium, and the start of the f-block series.'},
+    c4:{name:'Group 4 · Titanium group', desc:'Includes titanium and zirconium — light, corrosion-resistant metals.'},
+    c5:{name:'Group 5 · Vanadium group', desc:'Includes vanadium, niobium and tantalum.'},
+    c6:{name:'Group 6 · Chromium group', desc:'Includes chromium, molybdenum and tungsten.'},
+    c7:{name:'Group 7 · Manganese group', desc:'Includes manganese and rhenium.'},
+    c8:{name:'Group 8 · Iron group', desc:'Includes iron, ruthenium and osmium.'},
+    c9:{name:'Group 9 · Cobalt group', desc:'Includes cobalt, rhodium and iridium.'},
+    c10:{name:'Group 10 · Nickel group', desc:'Includes nickel, palladium and platinum.'},
+    c11:{name:'Group 11 · Coinage metals', desc:'Copper, silver and gold — excellent conductors.'},
+    c12:{name:'Group 12 · Zinc group', desc:'Zinc, cadmium and mercury.'},
+    c13:{name:'Group 13 · Boron group', desc:'Includes aluminium and gallium.'},
+    c14:{name:'Group 14 · Carbon group', desc:'Includes carbon, silicon and tin.'},
+    c15:{name:'Group 15 · Pnictogens', desc:'Includes nitrogen and phosphorus.'},
+    c16:{name:'Group 16 · Chalcogens', desc:'Includes oxygen and sulfur.'},
+    c17:{name:'Group 17 · Halogens', desc:'Highly reactive nonmetals that form salts.'},
+    c18:{name:'Group 18 · Noble gases', desc:'Full outer shells — inert and stable.'},
     lan:{name:'Lanthanides', desc:'Rare-earth metals used in magnets and phosphors.'},
     act:{name:'Actinides', desc:'Radioactive metals; most are synthetic.'}
   };
-  const SECTION_DIST = 1.8;
+  const SECTION_DIST = 2.0;
   let selectedZ = null, selectedSection = null;
 
-  // Per-cell target offsets. Called whenever selection changes.
   function updateTableTargets(){
     tableCells.forEach(o=>{
       const u = o.userData;
-      u.selX = 0; u.selY = 0; u.selZ = 0;
-      u.selScale = 1;
+      u.selX = 0; u.selY = 0; u.selZ = 0; u.selScale = 1;
     });
-
     if(!selectedSection || !selectedZ) return;
     const dir = SECTION_DIR[selectedSection];
     if(!dir) return;
 
-    const [selCol, selRow] = posOf(selectedZ);
+    const isLanAct = selectedSection === 'lan' || selectedSection === 'act';
+    const selCol = isLanAct ? null : parseInt(selectedSection.slice(1), 10);
+    const fam = isLanAct ? selectedSection : familyOfCol(selCol);
 
     tableCells.forEach(o=>{
       const u = o.userData;
 
       if(u.section === selectedSection){
-        // Selected section: full separation + scale-in
-        const extra = (u.Z === selectedZ) ? 1.1 : 0;
+        const extra = (u.Z === selectedZ) ? 1.2 : 0;
         u.selX = dir.x * (SECTION_DIST + extra);
         u.selY = dir.y * (SECTION_DIST + extra);
         u.selZ = dir.z * (SECTION_DIST + extra);
-        u.selScale = (u.Z === selectedZ) ? 1.22 : 1.06;
-      } else {
-        // Neighbors: gentle flow in the same direction with smooth falloff
-        const [col, row] = posOf(u.Z);
-        const dcol = col - selCol;
-        const drow = row - selRow;
-        const dist = Math.sqrt(dcol*dcol + drow*drow);
-        if(dist > 0.1 && dist < 4.5){
-          const falloff = 1 - dist / 4.5;
-          const strength = 0.35 * falloff * falloff;
-          u.selX = dir.x * strength * SECTION_DIST;
-          u.selY = dir.y * strength * SECTION_DIST;
-          u.selZ = dir.z * strength * SECTION_DIST;
-        }
+        u.selScale = (u.Z === selectedZ) ? 1.28 : 1.05;
+        return;
       }
+      if(isLanAct) return;
+
+      const col = posOf(u.Z)[0];
+      if(familyOfCol(col) !== fam) return;
+      const dcol = Math.abs(col - selCol);
+      if(dcol < 1 || dcol > 4) return;
+
+      const falloff = 1 - dcol / 5;
+      const strength = falloff * falloff * 0.55;
+      u.selX = dir.x * strength * SECTION_DIST;
+      u.selY = dir.y * strength * SECTION_DIST;
+      u.selZ = dir.z * strength * SECTION_DIST;
+      u.selScale = 1 + 0.05 * falloff;
     });
   }
 
   function clearTableSelection(){
-    selectedZ = null;
-    selectedSection = null;
+    selectedZ = null; selectedSection = null;
     updateTableTargets();
   }
   function handleTableTap(Z){
     if(selectedZ === Z){
-      clearTableSelection();
-      lastHover = null;
-      card.classList.remove('on');
+      clearTableSelection(); lastHover = null; card.classList.remove('on');
       openAtom(Z);
       return;
     }
-    selectedZ = Z;
-    selectedSection = sectionOf(Z);
+    selectedZ = Z; selectedSection = sectionOf(Z);
     updateTableTargets();
     lastHover = null;
     const info = SECTION_INFO[selectedSection];
@@ -832,24 +1243,27 @@ body.focus #menuWrap{display:none!important}
   // ---------- Views and menu ----------
   function enterView(){
     focused=null; lastHover=null;
-    goal.target.set(0,0,0);
-    goal.radius=defR; born=clock.getElapsedTime();
+    if(view !== 'physics') goal.target.set(0, 0, 0);
+    goal.radius = defR;
+    born = clock.getElapsedTime();
     card.classList.remove('on'); setPart(0); renderLadder(-1);
     rings.forEach(r=>{ r.material.opacity=0.28; });
   }
   function setView(v){
     const prev=view;
     view=v;
-    const atom=v==='atom', table=v==='table';
+    const atom=v==='atom', table=v==='table', physics=v==='physics';
     atomRoot.visible=atom;
-    molRoot.visible=!atom&&!table;
+    molRoot.visible=!atom&&!table&&!physics;
     tableRoot.visible=table;
+    physRoot.visible=physics;
     $('atomUI').hidden=!atom;
-    $('molUI').hidden=atom||table;
+    $('molUI').hidden=atom||table||physics;
+    $('physUI').hidden=!physics;
     $('tableUI').hidden=!table;
     $('speedRow').hidden=table;
     ladder.hidden=!atom;
-    $('speedLabel').textContent=atom?'Electron speed':'Spin speed';
+    $('speedLabel').textContent = atom ? 'Electron speed' : (physics ? 'Animation speed' : 'Spin speed');
     openGroup=null; userZoomed=false;
     if(atom){
       $('title').textContent=cur.name;
@@ -859,9 +1273,12 @@ body.focus #menuWrap{display:none!important}
     } else if(table){
       buildTable(); defR=tableFit();
       $('title').textContent='Periodic table';
-      $('sub').textContent='Tap a group to separate it · tap the same element again to open its atom';
+      $('sub').textContent='Tap a column to separate it · tap the same element again to open its atom';
       clearTableSelection();
       goal.theta=0; goal.phi=1.26;
+      enterView();
+    } else if(physics){
+      buildPhysics();
       enterView();
     } else {
       buildMol(curIdx[v]);
@@ -869,6 +1286,7 @@ body.focus #menuWrap{display:none!important}
       enterView();
     }
     if(prev==='table' && !table){ goal.theta=0.6; goal.phi=1.2; }
+    if(prev==='physics' && !physics){ goal.theta=0.6; goal.phi=1.2; }
     document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v));
     closeMenu(); closeUIMenu();
   }
@@ -950,8 +1368,11 @@ body.focus #menuWrap{display:none!important}
     else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Made of','up, down, down quarks']], 'Neutrons add mass and help hold the nucleus together.');
   }
   function reset(){
-    focused=null; goal.target.set(0,0,0); goal.radius=defR;
-    rings.forEach(r=>{ r.material.opacity=0.28; }); card.classList.remove('on'); setPart(0); renderLadder(-1);
+    focused=null;
+    if(view !== 'physics') goal.target.set(0,0,0);
+    goal.radius=defR;
+    rings.forEach(r=>{ r.material.opacity=0.28; });
+    card.classList.remove('on'); setPart(0); renderLadder(-1);
   }
 
   // ---------- Camera, zoom, pan and picking ----------
@@ -964,6 +1385,7 @@ body.focus #menuWrap{display:none!important}
   ray.near=0.01;
   const pickables=()=>{
     if(view==='table') return tableCells;
+    if(view==='physics') return [];
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
     return cloudMode ? nucleusParts : nucleusParts.concat(electrons);
   };
@@ -1027,6 +1449,8 @@ body.focus #menuWrap{display:none!important}
     if(view==='table'){
       if(hit) handleTableTap(hit.object.userData.Z);
       else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
+    } else if(view==='physics'){
+      // No picking in physics view
     } else {
       hit ? focus(hit.object) : reset();
     }
@@ -1070,12 +1494,14 @@ body.focus #menuWrap{display:none!important}
       }
     } else if(view==='mol' || view==='amino'){
       molRoot.rotation.y+=dt*speed*0.3;
+    } else if(view==='physics'){
+      updatePhysics(dt);
     }
 
-    const root=view==='atom'?atomRoot:view==='table'?tableRoot:molRoot;
+    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='physics'?physRoot:molRoot;
     const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
 
-    if(!dragging && !reduceMotion && !focused && view!=='table') goal.theta+=dt*0.08;
+    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='physics') goal.theta+=dt*0.08;
     const k=1-Math.pow(0.001,dt);
     if(focused) focused.getWorldPosition(goal.target);
     cam.theta+=(goal.theta-cam.theta)*k; cam.phi+=(goal.phi-cam.phi)*k; cam.radius+=(goal.radius-cam.radius)*k; cam.target.lerp(goal.target,k);
@@ -1088,24 +1514,18 @@ body.focus #menuWrap{display:none!important}
     canvas.classList.toggle('hover', !!hovered && !dragging);
 
     if(view==='table'){
-      // --- Smooth, time-based animation ---
       const zt = clamp((defR/Math.max(cam.radius,0.001) - 1)/1.6, 0, 1);
       const grow = 1 + 0.16*(zt*zt*(3-2*zt));
       const hv = hovered ? hovered.object : null;
-
-      // Frame-rate-independent easing constants
-      const kPos   = 1 - Math.exp(-dt / 0.15);   // ~150 ms time constant
-      const kScale = 1 - Math.exp(-dt / 0.18);   // ~180 ms time constant
+      const kPos   = 1 - Math.exp(-dt / 0.16);
+      const kScale = 1 - Math.exp(-dt / 0.2);
 
       tableCells.forEach(o=>{
         const u = o.userData;
         const on = (hv === o);
-
-        // Smooth hover lift & scale
         u.hover += ((on ? 1.05 : 1) - u.hover) * kScale;
         u.lift  += ((on ? 0.24 : 0) - u.lift)  * kPos;
 
-        // Position target = base + selection offset (both smoothly animated through position)
         const tx = u.baseX + u.selX;
         const ty = u.baseY + u.selY;
         const tz = u.selZ + u.lift;
@@ -1114,13 +1534,11 @@ body.focus #menuWrap{display:none!important}
         o.position.y += (ty - o.position.y) * kPos;
         o.position.z += (tz - o.position.z) * kPos;
 
-        // Scale target = base * selection-scale * hover
         const targetScale = grow * u.selScale * u.hover;
         const cur = o.scale.x;
         o.scale.setScalar(cur + (targetScale - cur) * kScale);
 
-        // Emissive glow
-        const eTarget = clamp((u.hover - 1) * 4 + (u.Z === selectedZ ? 0.42 : 0), 0, 0.75);
+        const eTarget = clamp((u.hover - 1) * 4 + (u.Z === selectedZ ? 0.45 : 0), 0, 0.8);
         u.body.emissiveIntensity += (eTarget - u.body.emissiveIntensity) * kScale;
       });
     } else {
