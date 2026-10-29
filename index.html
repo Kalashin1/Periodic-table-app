@@ -79,6 +79,46 @@ footer{position:fixed;left:0;right:0;bottom:0;padding:0 calc(14px + env(safe-are
 input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .btn:focus-visible,.chip:focus-visible,input:focus-visible,#menu button:focus-visible,#uiMenu button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* ---------- organ labels ---------- */
+#organLabels{position:fixed;inset:0;pointer-events:none;z-index:9}
+.organLabel{
+  position:fixed;left:0;top:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:4px 10px 5px;
+  background:rgba(14,32,46,.88);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(76,201,240,.4);
+  border-radius:9px;
+  color:#eef4f8;
+  font-family:inherit;
+  pointer-events:auto;
+  cursor:pointer;
+  transition:background .15s, border-color .15s;
+  white-space:nowrap;
+  z-index:10;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+  will-change:transform;
+}
+.organLabel:hover,.organLabel.hover{
+  background:rgba(76,201,240,.22);
+  border-color:rgba(76,201,240,.95);
+}
+.organLabel.active{
+  background:rgba(76,201,240,.38);
+  border-color:#4cc9f0;
+  box-shadow:0 2px 14px rgba(76,201,240,.5);
+}
+.organLabel .ol-name{font-size:12px;font-weight:600;letter-spacing:.02em}
+.organLabel .ol-fn{font-size:9.5px;opacity:.68;margin-top:1px;font-weight:400}
+.organLabel::after{
+  content:'';position:absolute;left:50%;top:100%;
+  width:1px;height:8px;background:rgba(76,201,240,.55);
+  transform:translateX(-50%);
+}
+body:not(.organ-view) #organLabels{display:none}
+body.hide-labels #organLabels{display:none!important}
+
+/* ---------- panel visibility ---------- */
 body.hide-header header h1,
 body.hide-header header p{display:none!important}
 body.hide-header #card{margin-top:0}
@@ -116,6 +156,9 @@ body.focus #menuWrap{display:none!important}
   .legend{font-size:12px;gap:9px}
   .legend i{width:9px;height:9px}
   .speed{font-size:12px;gap:9px}
+  .organLabel{padding:3px 8px 4px}
+  .organLabel .ol-name{font-size:10.5px}
+  .organLabel .ol-fn{font-size:8.5px}
 }
 @media (orientation:landscape) and (max-height:560px){
   #card{max-width:44vw}
@@ -129,6 +172,7 @@ body.focus #menuWrap{display:none!important}
   <p id="sub"></p>
   <div id="card" class="glass" role="status"><b></b><dl id="dl"></dl><span></span></div>
 </header>
+<div id="organLabels" aria-hidden="true"></div>
 
 <div id="menuWrap">
   <div id="tbRow">
@@ -139,7 +183,7 @@ body.focus #menuWrap{display:none!important}
     <button data-view="atom">Atom model</button>
     <button data-view="mol">Hydrocarbons</button>
     <button data-view="amino">Amino acids</button>
-    <button data-view="fission">Nuclear fission</button>
+    <button data-view="organs">Human anatomy</button>
     <button data-view="table">Periodic table</button>
   </div>
   <div id="uiMenu" class="glass" hidden>
@@ -147,6 +191,7 @@ body.focus #menuWrap{display:none!important}
     <label class="uiRow"><span>Energy levels</span><input type="checkbox" id="tLadder" checked></label>
     <label class="uiRow"><span>Controls panel</span><input type="checkbox" id="tPanel" checked></label>
     <label class="uiRow"><span>Info card</span><input type="checkbox" id="tCard" checked></label>
+    <label class="uiRow"><span>Anatomy labels</span><input type="checkbox" id="tLabels" checked></label>
     <hr>
     <button id="focusBtn" type="button">Hide all interface</button>
   </div>
@@ -177,17 +222,12 @@ body.focus #menuWrap{display:none!important}
       <div class="chips" id="pickHeads" role="group" aria-label="Categories"></div>
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
     </div>
-    <div class="sec" id="fissionUI" hidden>
+    <div class="sec" id="organUI" hidden>
       <div class="row">
-        <div class="legend">
-          <span><i style="background:#ff5a6e"></i>Protons</span>
-          <span><i style="background:#a8b4cc"></i>Neutrons</span>
-          <span><i style="background:#ffe066"></i>Gamma rays</span>
-        </div>
-        <button class="btn" id="fisPlay" type="button">Pause</button>
+        <div class="legend" id="organLegend" aria-label="Organs" style="flex-wrap:nowrap;overflow-x:auto;font-size:12px;padding-bottom:2px;scrollbar-width:none"></div>
       </div>
-      <div class="chips" id="fisTools" role="group" aria-label="Fission controls">
-        <button class="chip wide" id="fisReplay" type="button">Replay</button>
+      <div class="chips" id="organTools" role="group" aria-label="View controls">
+        <button class="chip wide" id="organReset" type="button">Reset view</button>
       </div>
     </div>
     <div class="sec" id="tableUI" hidden>
@@ -218,18 +258,18 @@ body.focus #menuWrap{display:none!important}
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 
   // ---------- Interface visibility ----------
-  const UI = {header:true, ladder:true, panel:true, card:true, focus:false};
+  const UI = {header:true, ladder:true, panel:true, card:true, labels:true, focus:false};
   const UI_KEY='atomlab.ui.v1';
   function loadUI(){
     try{
       const s=JSON.parse(localStorage.getItem(UI_KEY)||'null');
       if(s&&typeof s==='object'){
-        ['header','ladder','panel','card'].forEach(k=>{ if(typeof s[k]==='boolean') UI[k]=s[k]; });
+        ['header','ladder','panel','card','labels'].forEach(k=>{ if(typeof s[k]==='boolean') UI[k]=s[k]; });
       }
     }catch(_){}
   }
   function saveUI(){
-    try{ localStorage.setItem(UI_KEY, JSON.stringify({header:UI.header,ladder:UI.ladder,panel:UI.panel,card:UI.card})); }catch(_){}
+    try{ localStorage.setItem(UI_KEY, JSON.stringify({header:UI.header,ladder:UI.ladder,panel:UI.panel,card:UI.card,labels:UI.labels})); }catch(_){}
   }
   function applyUI(){
     const b=document.body;
@@ -237,11 +277,13 @@ body.focus #menuWrap{display:none!important}
     b.classList.toggle('hide-ladder', !UI.ladder);
     b.classList.toggle('hide-panel', !UI.panel);
     b.classList.toggle('hide-card', !UI.card);
+    b.classList.toggle('hide-labels', !UI.labels);
     b.classList.toggle('focus', !!UI.focus);
     $('tHeader').checked=UI.header;
     $('tLadder').checked=UI.ladder;
     $('tPanel').checked=UI.panel;
     $('tCard').checked=UI.card;
+    $('tLabels').checked=UI.labels;
     $('showUI').hidden=!UI.focus;
     if(!UI.focus) closeUIMenu();
     saveUI();
@@ -314,13 +356,14 @@ body.focus #menuWrap{display:none!important}
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x35506a, 0.9));
   const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4,6,5); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xaaccff, 0.35); fill.position.set(-4,-2,-4); scene.add(fill);
   const sp = [];
   for(let i=0;i<1400;i++){ const r=60+Math.random()*60, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
-  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), fisRoot = new THREE.Group();
-  scene.add(atomRoot, molRoot, tableRoot, fisRoot);
+  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), organRoot = new THREE.Group();
+  scene.add(atomRoot, molRoot, tableRoot, organRoot);
   const partGeo = new THREE.SphereGeometry(0.2, 24, 16), partGeoLo = new THREE.SphereGeometry(0.2, 12, 8), eGeo = new THREE.SphereGeometry(0.14, 16, 12);
   const unitGeo = new THREE.SphereGeometry(1, 32, 20), cylGeo = new THREE.CylinderGeometry(0.07,0.07,1,12);
   const mP = new THREE.MeshStandardMaterial({color:0xff5a6e, emissive:0x4a0f18, roughness:.4});
@@ -332,7 +375,6 @@ body.focus #menuWrap{display:none!important}
 
   let view='atom', nucleusParts=[], electrons=[], rings=[], clouds=[], cloudMode=false, born=0, defR=14, cur=null, nucR=0.3;
   let molAtoms=[], molBonds=[], spaceFill=false, openGroup=null, curIdx={mol:0,amino:0};
-  let currentA = null;
 
   // ---------- Atom ----------
   function build(i, A_override){
@@ -342,7 +384,6 @@ body.focus #menuWrap{display:none!important}
     const isoList = isotopesOf(Z);
     const A = (A_override && isoList.includes(A_override)) ? A_override : el[2];
     const N = A - Z, total = A, sh = shellsFor(Z);
-    currentA = A;
     const nucleus=new THREE.Group(); atomRoot.add(nucleus);
     const geo = total>150 ? partGeoLo : partGeo;
     const ga=Math.PI*(3-Math.sqrt(5)), D=0.4, P=[];
@@ -403,20 +444,16 @@ body.focus #menuWrap{display:none!important}
       enterView();
     }
   }
-  let isoChips = [];
   function renderIsoChips(Z, A, sym){
-    const box = $('isoChips');
-    box.innerHTML=''; isoChips=[];
+    const box = $('isoChips'); box.innerHTML='';
     isotopesOf(Z).forEach(Ax=>{
       const b = document.createElement('button');
-      b.className = 'chip wide';
-      b.type = 'button';
-      b.innerHTML = sup(Ax)+'<span style="opacity:.85">'+sym+'</span>';
+      b.className='chip wide'; b.type='button';
+      b.innerHTML = sup(Ax)+'<span style="opacity:.75;margin-left:2px">'+sym+'</span>';
       b.setAttribute('aria-pressed', Ax===A);
       b.title = sym+'-'+Ax;
       b.addEventListener('click', ()=>build(Z-1, Ax));
       box.appendChild(b);
-      isoChips.push(b);
     });
   }
   function applyMode(){ electrons.forEach(e=>e.visible=!cloudMode); rings.forEach(r=>r.visible=!cloudMode); clouds.forEach(c=>c.visible=cloudMode); }
@@ -620,277 +657,326 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
-  // ---------- Nuclear fission ----------
-  const FIS = {
-    timeline: 0, paused: false, speed: 1, phase: 'idle',
-    nucleus: null, nucleons: [], incoming: null,
-    flashMesh: null, flashLight: null,
-    gammas: [], fragA: [], fragB: [], freeNs: [],
-    splitPrepared: false, gammasSpawned: false, absorbed: false,
-    lastCardKey: '', lastPhaseSub: ''
-  };
-  const FIS_PHASE = {
-    idle:     {title:'Uranium-235', rows:[['Protons',92],['Neutrons',143],['Mass',235]], text:'A heavy, slightly unstable nucleus. A thermal neutron will trigger fission.'},
-    approach: {title:'Neutron approaching', rows:[['Reaction','²³⁵U + n → ²³⁶U*'],['Neutron energy','~0.025 eV (thermal)']], text:'A slow neutron drifts toward the U-235 nucleus.'},
-    absorb:   {title:'U-236* — excited', rows:[['State','compound nucleus'],['Lifetime','~10⁻¹⁴ s']], text:'The neutron is captured. The nucleus is now U-236 in a highly excited state.'},
-    elongate: {title:'Deforming', rows:[['Shape','dumbbell'],['Cause','Coulomb repulsion']], text:'Proton repulsion stretches the nucleus. A neck forms between two future fragments.'},
-    split:    {title:'Scission!', rows:[['Fragment A','Ba-141 (56p + 85n)'],['Fragment B','Kr-92 (36p + 56n)'],['Released','3 neutrons + γ rays']], text:'The neck pinches. Two new nuclei fly apart with ~200 MeV of kinetic energy.'},
-    settle:   {title:'Fission complete', rows:[['Energy','~200 MeV'],['Products','Ba-141 · Kr-92 · 3n · γ'],['Chain reaction','possible with U-235 + n']], text:'The fragments slow down and deposit energy. Released neutrons can trigger more fissions.'}
-  };
-
-  function packSphere(count, radius){
-    const P = [];
-    const ga = Math.PI*(3-Math.sqrt(5));
-    for(let k=0;k<count;k++){
-      const y = 1 - 2*(k+0.5)/count;
-      const r = Math.sqrt(1 - y*y);
-      const th = k*ga;
-      const rr = Math.cbrt((k+0.5)/count) * radius;
-      P.push(new V(Math.cos(th)*r*rr, y*rr, Math.sin(th)*r*rr));
+  // ---------- Organ (human anatomy) ----------
+  function deform(geo, amp, freq){
+    const pos = geo.attributes.position, v = new V();
+    for(let i=0;i<pos.count;i++){
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+      const len = v.length();
+      if(len < 0.001) continue;
+      const n = Math.sin(v.x*freq) * Math.cos(v.y*freq) * Math.sin(v.z*freq) * amp;
+      v.normalize().multiplyScalar(len + n);
+      pos.setXYZ(i, v.x, v.y, v.z);
     }
-    for(let it=0;it<80;it++){
-      for(let a=0;a<count;a++){
-        for(let b=a+1;b<count;b++){
-          const d = P[a].distanceTo(P[b]);
-          if(d < 0.32 && d > 1e-6){
-            const push = P[a].clone().sub(P[b]).multiplyScalar((0.32-d)/d*0.5);
-            P[a].add(push);
-            P[b].sub(push);
-          }
+    geo.computeVertexNormals();
+    return geo;
+  }
+  const organMat = (color, rough=0.78) => new THREE.MeshStandardMaterial({color, emissive:color, emissiveIntensity:0, roughness:rough});
+
+  const ORGANS = [
+    {
+      id:'brain', name:'Brain', system:'Nervous system',
+      pos:[0, 4.5, 0], color:0xf4a3b5, labelOffset:[0, 0.85, 0],
+      fn:'Control center of the nervous system',
+      description:'The brain processes sensory information, coordinates movement, and is the seat of thought, memory, emotion and consciousness.',
+      facts:[['Weight','~1.4 kg'],['Neurons','~86 billion'],['Energy','~20% of body']],
+      build:()=>{
+        const g = new THREE.Group();
+        const mat = organMat(0xf4a3b5, 0.85);
+        const hemi = new THREE.SphereGeometry(0.42, 32, 24);
+        const lh = new THREE.Mesh(deform(hemi, 0.028, 26), mat);
+        lh.position.set(-0.24, 0.05, 0); lh.scale.set(1, 0.95, 1.15);
+        g.add(lh);
+        const rh = new THREE.Mesh(deform(new THREE.SphereGeometry(0.42, 32, 24), 0.028, 26), mat);
+        rh.position.set(0.24, 0.05, 0); rh.scale.set(1, 0.95, 1.15);
+        g.add(rh);
+        const cb = new THREE.Mesh(deform(new THREE.SphereGeometry(0.28, 20, 16), 0.022, 30), mat);
+        cb.position.set(0, -0.28, -0.32); cb.scale.set(1.3, 0.7, 0.85);
+        g.add(cb);
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.42, 10), mat);
+        stem.position.set(0, -0.4, -0.05);
+        g.add(stem);
+        return g;
+      }
+    },
+    {
+      id:'lungs', name:'Lungs', system:'Respiratory system',
+      pos:[0, 2.95, 0], color:0xe8a4a4, labelOffset:[1.15, 0.45, 0],
+      fn:'Exchange oxygen and carbon dioxide',
+      description:'Two spongy organs that bring oxygen into the blood and remove carbon dioxide. The right lung has 3 lobes; the left has 2, leaving room for the heart.',
+      facts:[['Alveoli','~480 million'],['Surface area','~70 m²'],['Capacity','~6 L']],
+      build:()=>{
+        const g = new THREE.Group();
+        const lungMat = organMat(0xe8a4a4, 0.9);
+        const trachMat = organMat(0xd8c8b8, 0.7);
+        [-1, 1].forEach(side=>{
+          const l = new THREE.Mesh(deform(new THREE.SphereGeometry(0.6, 24, 20), 0.015, 20), lungMat);
+          l.position.set(side * 0.72, 0, 0);
+          l.scale.set(0.85, 1.4, 0.9);
+          g.add(l);
+        });
+        const trach = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.6, 12), trachMat);
+        trach.position.set(0, 0.85, 0);
+        g.add(trach);
+        [-1, 1].forEach(side=>{
+          const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0, 0.55, 0),
+            new THREE.Vector3(side * 0.2, 0.35, 0),
+            new THREE.Vector3(side * 0.45, 0.15, 0),
+            new THREE.Vector3(side * 0.62, 0.05, 0)
+          ]);
+          g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.045, 8), trachMat));
+        });
+        return g;
+      }
+    },
+    {
+      id:'heart', name:'Heart', system:'Cardiovascular system',
+      pos:[0.35, 2.55, 0.28], color:0xc1272d, labelOffset:[1.1, -0.15, 0],
+      fn:'Pumps blood around the body',
+      description:'A muscular pump with four chambers. The right side sends blood to the lungs; the left side pumps oxygenated blood to the rest of the body.',
+      facts:[['Weight','~300 g'],['Beats per day','~100,000'],['Chambers','4']],
+      build:()=>{
+        const g = new THREE.Group();
+        const hv = organMat(0xc1272d, 0.55);
+        const lv = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 20), hv);
+        lv.position.set(-0.12, 0, 0); lv.scale.set(0.9, 1.15, 0.9);
+        g.add(lv);
+        const rv = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 20), hv);
+        rv.position.set(0.22, -0.05, 0.12); rv.scale.set(0.85, 1.0, 0.85);
+        g.add(rv);
+        const aortaCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0, 0.42, 0),
+          new THREE.Vector3(-0.1, 0.7, 0),
+          new THREE.Vector3(-0.38, 0.85, 0),
+          new THREE.Vector3(-0.66, 0.62, 0),
+          new THREE.Vector3(-0.72, 0.25, 0)
+        ]);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(aortaCurve, 24, 0.075, 8), organMat(0xd94a4a, 0.55)));
+        const ptCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0.18, 0.35, 0.15),
+          new THREE.Vector3(0.32, 0.55, 0.2),
+          new THREE.Vector3(0.5, 0.42, 0.12)
+        ]);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(ptCurve, 14, 0.055, 8), organMat(0x4a7dc9, 0.55)));
+        return g;
+      }
+    },
+    {
+      id:'liver', name:'Liver', system:'Digestive system',
+      pos:[-0.6, 1.7, 0.18], color:0x7a2e1f, labelOffset:[-1.2, 0.15, 0],
+      fn:'Filters blood and processes nutrients',
+      description:'The largest internal organ. It detoxifies the blood, stores glycogen, produces bile for digestion, and synthesizes many proteins.',
+      facts:[['Weight','~1.5 kg'],['Functions','~500'],['Regrows','Yes']],
+      build:()=>{
+        const g = new THREE.Group();
+        const mat = organMat(0x7a2e1f, 0.7);
+        const rl = new THREE.Mesh(deform(new THREE.SphereGeometry(0.62, 24, 20), 0.02, 14), mat);
+        rl.position.set(0.2, 0, 0); rl.scale.set(1.3, 0.7, 1.0);
+        g.add(rl);
+        const ll = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 16), mat);
+        ll.position.set(-0.65, -0.05, 0); ll.scale.set(1.2, 0.6, 0.9);
+        g.add(ll);
+        return g;
+      }
+    },
+    {
+      id:'stomach', name:'Stomach', system:'Digestive system',
+      pos:[0.5, 1.72, 0.1], color:0xe8a494, labelOffset:[1.35, 0.15, 0],
+      fn:'Breaks down food with acid',
+      description:'A muscular sac that churns food and mixes it with gastric acid and enzymes to form chyme before passing it to the small intestine.',
+      facts:[['pH','1.5–3.5'],['Capacity','~1 L'],['Muscle layers','3']],
+      build:()=>{
+        const g = new THREE.Group();
+        const mat = organMat(0xe8a494, 0.82);
+        const body = new THREE.Mesh(deform(new THREE.SphereGeometry(0.48, 24, 20), 0.025, 12), mat);
+        body.scale.set(0.9, 1.3, 0.7);
+        g.add(body);
+        const esCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0.15, 0.55, 0),
+          new THREE.Vector3(0.1, 0.72, 0),
+          new THREE.Vector3(0.05, 0.92, 0)
+        ]);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(esCurve, 12, 0.06, 8), mat));
+        const duCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0.28, -0.4, 0),
+          new THREE.Vector3(0.44, -0.48, 0),
+          new THREE.Vector3(0.6, -0.52, 0)
+        ]);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(duCurve, 12, 0.06, 8), mat));
+        return g;
+      }
+    },
+    {
+      id:'kidneys', name:'Kidneys', system:'Urinary system',
+      pos:[0, 1.4, -0.55], color:0xa83b3b, labelOffset:[1.35, -0.2, 0],
+      fn:'Filter blood and produce urine',
+      description:'Two bean-shaped organs that filter waste from the blood, balance electrolytes, and regulate blood pressure.',
+      facts:[['Weight','~150 g each'],['Nephrons','~1 million each'],['Filtered','~180 L/day']],
+      build:()=>{
+        const g = new THREE.Group();
+        const mat = organMat(0xa83b3b, 0.72);
+        [-1, 1].forEach(side=>{
+          const k = new THREE.Group();
+          const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 16), mat);
+          s1.position.y = 0.08; k.add(s1);
+          const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 16), mat);
+          s2.position.y = -0.12; k.add(s2);
+          k.position.set(side * 0.82, 0, 0);
+          k.scale.set(0.9, 1.2, 0.8);
+          g.add(k);
+          const uCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(side * 0.82, -0.35, 0),
+            new THREE.Vector3(side * 0.78, -0.85, 0.05),
+            new THREE.Vector3(side * 0.5, -1.4, 0.1),
+            new THREE.Vector3(side * 0.2, -1.75, 0.12)
+          ]);
+          g.add(new THREE.Mesh(new THREE.TubeGeometry(uCurve, 20, 0.035, 6), mat));
+        });
+        return g;
+      }
+    },
+    {
+      id:'intestines', name:'Intestines', system:'Digestive system',
+      pos:[0, 0.35, 0.18], color:0xe8b494, labelOffset:[1.4, 0.05, 0],
+      fn:'Absorb nutrients and water',
+      description:'The small intestine absorbs most nutrients. The large intestine absorbs water and forms waste. Together they complete digestion.',
+      facts:[['Small','~6 m'],['Large','~1.5 m'],['Surface area','~30 m²']],
+      build:()=>{
+        const g = new THREE.Group();
+        const smallMat = organMat(0xe8b494, 0.85);
+        const largeMat = organMat(0xd08070, 0.82);
+        const pts = [];
+        for(let i=0;i<60;i++){
+          const t = i/59;
+          const angle = t * Math.PI * 8;
+          const radius = 0.35 + Math.sin(t*Math.PI)*0.25;
+          pts.push(new THREE.Vector3(Math.cos(angle)*radius, 0.35 - t*0.9, Math.sin(angle)*radius * 0.6));
         }
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 100, 0.075, 8), smallMat));
+        const largePts = [
+          new THREE.Vector3(-0.4, 0.55, 0),
+          new THREE.Vector3(-0.65, 0.25, 0),
+          new THREE.Vector3(-0.65, -0.35, 0),
+          new THREE.Vector3(-0.4, -0.75, 0),
+          new THREE.Vector3(0, -0.85, 0),
+          new THREE.Vector3(0.4, -0.75, 0),
+          new THREE.Vector3(0.65, -0.35, 0),
+          new THREE.Vector3(0.65, 0.25, 0),
+          new THREE.Vector3(0.4, 0.55, 0),
+          new THREE.Vector3(0, 0.6, 0)
+        ];
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(largePts), 60, 0.11, 8), largeMat));
+        return g;
+      }
+    },
+    {
+      id:'bladder', name:'Bladder', system:'Urinary system',
+      pos:[0, -0.55, 0.18], color:0xd4a4c0, labelOffset:[0, -0.6, 0],
+      fn:'Stores urine',
+      description:'A hollow muscular organ that stores urine from the kidneys until it is released.',
+      facts:[['Capacity','400–600 mL'],['Expandable','Yes'],['Muscle','Detrusor']],
+      build:()=>{
+        const g = new THREE.Group();
+        const mat = organMat(0xd4a4c0, 0.78);
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 16), mat);
+        s.scale.set(1, 0.88, 0.9);
+        g.add(s);
+        return g;
       }
     }
-    return P;
-  }
+  ];
 
-  function buildFission(){
-    clearRoot(fisRoot);
-    FIS.nucleus=null; FIS.nucleons=[]; FIS.incoming=null;
-    FIS.flashMesh=null; FIS.flashLight=null;
-    FIS.gammas=[]; FIS.fragA=[]; FIS.fragB=[]; FIS.freeNs=[];
-    FIS.timeline=0; FIS.paused=false; FIS.phase='idle';
-    FIS.splitPrepared=false; FIS.gammasSpawned=false; FIS.absorbed=false;
-    FIS.lastCardKey=''; FIS.lastPhaseSub='';
-    $('fisPlay').textContent='Pause';
+  let organPickables = [], organsBuilt = false, labelHoveredOrgan = null, organLabelEls = [];
 
-    // U-235: 92 protons + 143 neutrons = 235 nucleons
-    const Z=92, Nn=143, total=Z+Nn;
-    const P = packSphere(total, 2.5);
-    // Center
-    const c = P.reduce((s,v)=>s.add(v), new V()).divideScalar(total);
-    P.forEach(v=>v.sub(c));
-
-    const nucleus = new THREE.Group();
-    fisRoot.add(nucleus);
-    FIS.nucleus = nucleus;
-
-    const types = [];
-    for(let k=0;k<Z;k++) types.push('p');
-    for(let k=0;k<Nn;k++) types.push('n');
-    // Shuffle types so protons and neutrons are interspersed
-    for(let k=types.length-1;k>0;k--){
-      const j = Math.floor(Math.random()*(k+1));
-      [types[k], types[j]] = [types[j], types[k]];
-    }
-
-    types.forEach((type, k)=>{
-      const m = new THREE.Mesh(partGeoLo, type==='p'?mP:mN);
-      m.position.copy(P[k]);
-      m.userData = { kind:'fis', type, basePos: P[k].clone() };
-      nucleus.add(m);
-      FIS.nucleons.push({ mesh: m, type, basePos: P[k].clone() });
+  function buildBody(){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({
+      color:0x4a7dc9, transparent:true, opacity:0.055,
+      roughness:0.95, side:THREE.DoubleSide, depthWrite:false
     });
-
-    // Incoming neutron
-    const incoming = new THREE.Mesh(partGeoLo, mN);
-    incoming.position.set(-10, 0, 0);
-    incoming.visible = false;
-    fisRoot.add(incoming);
-    FIS.incoming = incoming;
-
-    // Flash
-    const flashGeo = new THREE.SphereGeometry(1, 20, 16);
-    const flashMat = new THREE.MeshBasicMaterial({color:0xfff2b0, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false});
-    const flash = new THREE.Mesh(flashGeo, flashMat);
-    flash.position.set(0,0,0);
-    fisRoot.add(flash);
-    FIS.flashMesh = flash;
-
-    const flashLight = new THREE.PointLight(0xffcc66, 0, 30);
-    flashLight.position.set(0,0,0);
-    fisRoot.add(flashLight);
-    FIS.flashLight = flashLight;
-
-    $('title').textContent='Nuclear fission';
-    $('sub').textContent='Uranium-235 absorbs a neutron, becomes U-236, and splits into Ba-141 + Kr-92 + 3 neutrons + γ rays';
-    defR = 24;
+    const profile = [
+      new V(0.55, -1.4, 0), new V(0.85, -1.2, 0), new V(1.0, -0.8, 0),
+      new V(1.05, 0, 0), new V(1.08, 0.8, 0), new V(1.15, 1.6, 0),
+      new V(1.1, 2.4, 0), new V(0.95, 3.0, 0), new V(0.75, 3.4, 0),
+      new V(0.4, 3.7, 0), new V(0.28, 3.85, 0)
+    ];
+    g.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 32), mat));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.65, 24, 20), mat);
+    head.position.y = 4.55; head.scale.set(0.9, 1.05, 0.95);
+    g.add(head);
+    return g;
   }
 
-  function prepareFissionSplit(){
-    const all = FIS.nucleons.slice();
-    const neutrons = all.filter(n => n.type === 'n');
-    const freeSet = new Set();
-    while(freeSet.size < 3 && freeSet.size < neutrons.length){
-      freeSet.add(neutrons[Math.floor(Math.random() * neutrons.length)]);
-    }
-    const freeNs = [...freeSet];
-    const remaining = all.filter(n => !freeSet.has(n));
-    remaining.sort((a, b) => b.basePos.x - a.basePos.x);
-    const fragA = remaining.slice(0, 141);
-    const fragB = remaining.slice(141);
-
-    const posA = packSphere(fragA.length, 1.85);
-    const posB = packSphere(fragB.length, 1.55);
-
-    fragA.forEach((n, i) => { n.startPos = n.mesh.position.clone(); n.targetLocal = posA[i]; });
-    fragB.forEach((n, i) => { n.startPos = n.mesh.position.clone(); n.targetLocal = posB[i]; });
-    freeNs.forEach((n, i) => {
-      n.startPos = n.mesh.position.clone();
-      const phi = Math.PI * (0.3 + 0.4 * Math.random());
-      const theta = i * 2.1 + Math.random() * 0.5;
-      n.freeDir = new V(
-        Math.cos(theta) * Math.sin(phi),
-        Math.cos(phi),
-        Math.sin(theta) * Math.sin(phi)
-      ).normalize().multiplyScalar(9 + Math.random() * 4);
+  function buildOrgans(){
+    if(organsBuilt) return;
+    organsBuilt = true;
+    clearRoot(organRoot);
+    organPickables = [];
+    organRoot.add(buildBody());
+    ORGANS.forEach(o=>{
+      const g = o.build();
+      g.position.set(o.pos[0], o.pos[1], o.pos[2]);
+      g.traverse(child=>{
+        if(child.isMesh){
+          child.userData.organ = o;
+          organPickables.push(child);
+        }
+      });
+      organRoot.add(g);
+      o.group = g;
     });
-
-    FIS.fragA = fragA; FIS.fragB = fragB; FIS.freeNs = freeNs;
+    createOrganLabels();
+    renderOrganLegend();
   }
 
-  function spawnFissionGammas(){
-    for(let k=0;k<14;k++){
-      const phi = Math.acos(2*Math.random()-1);
-      const theta = Math.random()*Math.PI*2;
-      const dir = new V(Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta));
-      const len = 7 + Math.random()*6;
-      const geo = new THREE.BufferGeometry().setFromPoints([new V(0,0,0), dir.clone().multiplyScalar(len)]);
-      const mat = new THREE.LineBasicMaterial({color:0xffe066, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false});
-      const line = new THREE.Line(geo, mat);
-      line.visible = false;
-      fisRoot.add(line);
-      FIS.gammas.push({line, life:0});
-    }
+  function createOrganLabels(){
+    const container = $('organLabels');
+    container.innerHTML = '';
+    organLabelEls = [];
+    ORGANS.forEach(o=>{
+      const el = document.createElement('div');
+      el.className = 'organLabel';
+      el.innerHTML = '<span class="ol-name">'+o.name+'</span><span class="ol-fn">'+o.fn+'</span>';
+      el.addEventListener('mouseenter', ()=>{ labelHoveredOrgan = o; });
+      el.addEventListener('mouseleave', ()=>{ if(labelHoveredOrgan === o) labelHoveredOrgan = null; });
+      el.addEventListener('click', ()=>{ labelHoveredOrgan = null; focusOrgan(o); });
+      container.appendChild(el);
+      o.labelEl = el;
+      organLabelEls.push({organ:o, el});
+    });
   }
 
-  function updateFission(dt){
-    if(FIS.paused) return;
-    FIS.timeline += dt * FIS.speed * (+slider.value || 1);
-    const T = FIS.timeline;
+  function renderOrganLegend(){
+    const box = $('organLegend');
+    box.innerHTML = ORGANS.map(o=>
+      '<span data-organ="'+o.id+'" style="cursor:pointer"><i style="background:'+HEX(o.color)+'"></i>'+o.name+'</span>'
+    ).join('');
+    box.querySelectorAll('[data-organ]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const o = ORGANS.find(x => x.id === el.dataset.organ);
+        if(o) focusOrgan(o);
+      });
+    });
+  }
 
-    let phase;
-    if(T < 0.05) phase = 'idle';
-    else if(T < 1.8) phase = 'approach';
-    else if(T < 2.4) phase = 'absorb';
-    else if(T < 4.4) phase = 'elongate';
-    else if(T < 6.4) phase = 'split';
-    else phase = 'settle';
-    FIS.phase = phase;
+  function organFit(){
+    const vf = camera.fov * Math.PI / 180;
+    const hf = 2 * Math.atan(Math.tan(vf/2) * camera.aspect);
+    const H = 7.5, W = 3.0;
+    return Math.max((H/2)/Math.tan(vf/2), (W/2)/Math.tan(hf/2)) * 1.05;
+  }
 
-    // Absorb once
-    if(T >= 1.8 && !FIS.absorbed && FIS.incoming){
-      FIS.absorbed = true;
-      const n = { mesh: FIS.incoming, type:'n', basePos: new V(0,0,0) };
-      FIS.nucleons.push(n);
-      fisRoot.remove(FIS.incoming);
-      FIS.nucleus.add(FIS.incoming);
-      FIS.incoming.position.set(0,0,0);
-      FIS.incoming = null;
-      if(FIS.flashMesh){ FIS.flashMesh.material.opacity = 0.9; FIS.flashMesh.scale.setScalar(1.2); }
-      if(FIS.flashLight){ FIS.flashLight.intensity = 3; }
-    }
-
-    if(phase === 'idle' || phase === 'approach'){
-      FIS.nucleons.forEach(n => { if(n.mesh.position) n.mesh.position.copy(n.basePos); });
-      if(FIS.incoming){
-        FIS.incoming.visible = true;
-        if(phase === 'approach'){
-          const p = clamp((T - 0.05) / 1.75, 0, 1);
-          FIS.incoming.position.set(-10 + p*9, 0, 0);
-        } else FIS.incoming.position.set(-10, 0, 0);
-      }
-      if(FIS.flashMesh) FIS.flashMesh.material.opacity *= 0.92;
-      if(FIS.flashLight) FIS.flashLight.intensity *= 0.92;
-    } else if(phase === 'absorb'){
-      const p = (T - 1.8) / 0.6;
-      FIS.nucleons.forEach(n => {
-        const j = 0.06 * Math.sin(T * 40 + n.basePos.x * 5);
-        n.mesh.position.copy(n.basePos).add(new V(j, j*0.7, j*1.3));
-      });
-      if(FIS.flashMesh){
-        FIS.flashMesh.material.opacity = Math.max(0, 1 - p*1.5) * 0.9;
-        FIS.flashMesh.scale.setScalar(1.2 + p*3);
-      }
-      if(FIS.flashLight) FIS.flashLight.intensity = Math.max(0, 1 - p*1.5) * 3;
-    } else if(phase === 'elongate'){
-      const p = (T - 2.4) / 2.0;
-      const ease = p*p*(3-2*p);
-      const stretch = 1 + ease * 1.4;
-      FIS.nucleons.forEach(n => {
-        const pos = n.basePos.clone();
-        pos.x *= stretch;
-        pos.y /= Math.sqrt(stretch) * 0.85;
-        pos.z /= Math.sqrt(stretch) * 0.85;
-        pos.y += Math.sin(T * 25 + n.basePos.y * 4) * 0.05;
-        n.mesh.position.copy(pos);
-      });
-      if(FIS.flashMesh){
-        FIS.flashMesh.material.opacity = Math.max(0, 1 - p*2) * 0.4;
-        FIS.flashMesh.scale.setScalar(1.2 + p*4);
-      }
-      if(FIS.flashLight) FIS.flashLight.intensity = Math.max(0, 1 - p*2) * 1.2;
-    } else if(phase === 'split'){
-      if(!FIS.splitPrepared){ FIS.splitPrepared = true; prepareFissionSplit(); }
-      const p = clamp((T - 4.4) / 2.0, 0, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      const sep = 11 * ease;
-      const cA = new V(sep * 0.58, 0, 0);
-      const cB = new V(-sep * 0.42, 0, 0);
-      FIS.fragA.forEach(n => {
-        n.mesh.position.copy(n.startPos.clone().lerp(cA.clone().add(n.targetLocal), ease));
-      });
-      FIS.fragB.forEach(n => {
-        n.mesh.position.copy(n.startPos.clone().lerp(cB.clone().add(n.targetLocal), ease));
-      });
-      FIS.freeNs.forEach(n => {
-        n.mesh.position.copy(n.startPos).addScaledVector(n.freeDir, ease);
-      });
-      if(FIS.flashMesh){
-        FIS.flashMesh.material.opacity = Math.max(0, 1 - p*1.2) * 0.85;
-        FIS.flashMesh.scale.setScalar(1.2 + p*18);
-      }
-      if(FIS.flashLight) FIS.flashLight.intensity = Math.max(0, 1 - p*1.2) * 5;
-      if(!FIS.gammasSpawned){ FIS.gammasSpawned = true; spawnFissionGammas(); }
-      FIS.gammas.forEach((g, k) => {
-        const fade = 1 - clamp((T - 4.4) / 2.5, 0, 1);
-        const l = clamp((T - 4.4 - k*0.04) * 2, 0, 1);
-        g.line.material.opacity = l * fade * 0.9;
-        g.line.visible = l > 0.02;
-      });
-    } else if(phase === 'settle'){
-      const drift = Math.min(T - 6.4, 20) * 0.5;
-      const cA = new V(11 * 0.58 + drift, 0, 0);
-      const cB = new V(-11 * 0.42 - drift, 0, 0);
-      FIS.fragA.forEach(n => { n.mesh.position.copy(cA.clone().add(n.targetLocal)); });
-      FIS.fragB.forEach(n => { n.mesh.position.copy(cB.clone().add(n.targetLocal)); });
-      FIS.freeNs.forEach(n => { n.mesh.position.copy(n.startPos).addScaledVector(n.freeDir, 1 + (T - 6.4) * 0.5); });
-      if(FIS.flashMesh) FIS.flashMesh.material.opacity *= 0.95;
-      if(FIS.flashLight) FIS.flashLight.intensity *= 0.95;
-      FIS.gammas.forEach(g => { g.line.material.opacity *= 0.94; });
-    }
-
-    if(FIS.lastPhaseSub !== phase){
-      FIS.lastPhaseSub = phase;
-      const subs = {
-        idle: 'Uranium-235 · 92 protons · 143 neutrons · ready to absorb a neutron',
-        approach: 'A thermal neutron approaches the U-235 nucleus…',
-        absorb: 'Neutron captured · the nucleus becomes U-236* in an excited, unstable state',
-        elongate: 'The nucleus deforms, stretching toward a dumbbell shape',
-        split: 'Scission! → Ba-141 + Kr-92 + 3 neutrons + γ rays',
-        settle: 'Fission complete · ~200 MeV released as kinetic energy and radiation'
-      };
-      $('sub').textContent = subs[phase] || '';
-    }
+  function focusOrgan(o){
+    if(!o.group) return;
+    focused = o.group;
+    goal.radius = 3.2;
+    const rows = [
+      ['System', o.system],
+      ['Function', o.fn]
+    ].concat((o.facts || []).slice(0, 3));
+    showCard(o.name, rows, o.description);
+    ORGANS.forEach(x=>{ if(x.labelEl) x.labelEl.classList.toggle('active', x === o); });
   }
 
   // ---------- Periodic table ----------
@@ -1070,18 +1156,29 @@ body.focus #menuWrap{display:none!important}
 
   // ---------- Views and menu ----------
   function enterView(){
-    focused=null; lastHover=null; goal.target.set(0,0,0); goal.radius=defR; born=clock.getElapsedTime();
+    focused=null; lastHover=null;
+    goal.target.set(0, view==='organs' ? 2 : 0, 0);
+    goal.radius=defR; born=clock.getElapsedTime();
     card.classList.remove('on'); setPart(0); renderLadder(-1);
     rings.forEach(r=>{ r.material.opacity=0.28; });
+    ORGANS.forEach(x=>{ if(x.labelEl) x.labelEl.classList.remove('active'); });
   }
   function setView(v){
     const prev=view;
     view=v;
-    const atom=v==='atom', table=v==='table', fission=v==='fission';
-    atomRoot.visible=atom; molRoot.visible=!atom&&!table&&!fission; tableRoot.visible=table; fisRoot.visible=fission;
-    $('atomUI').hidden=!atom; $('molUI').hidden=atom||table||fission; $('fissionUI').hidden=!fission; $('tableUI').hidden=!table;
-    $('speedRow').hidden=table; ladder.hidden=!atom;
-    $('speedLabel').textContent=atom?'Electron speed':(fission?'Animation speed':'Spin speed');
+    const atom=v==='atom', table=v==='table', organ=v==='organs';
+    atomRoot.visible=atom;
+    molRoot.visible=!atom&&!table&&!organ;
+    tableRoot.visible=table;
+    organRoot.visible=organ;
+    document.body.classList.toggle('organ-view', organ);
+    $('atomUI').hidden=!atom;
+    $('molUI').hidden=atom||table||organ;
+    $('organUI').hidden=!organ;
+    $('tableUI').hidden=!table;
+    $('speedRow').hidden=table||organ;
+    ladder.hidden=!atom;
+    $('speedLabel').textContent=atom?'Electron speed':'Spin speed';
     openGroup=null; userZoomed=false;
     if(atom){
       $('title').textContent=cur.name;
@@ -1095,9 +1192,11 @@ body.focus #menuWrap{display:none!important}
       clearTableSelection();
       goal.theta=0; goal.phi=1.26;
       enterView();
-    } else if(fission){
-      buildFission();
-      goal.theta=0.35; goal.phi=1.35;
+    } else if(organ){
+      buildOrgans(); defR=organFit();
+      $('title').textContent='Human anatomy';
+      $('sub').textContent='Tap an organ or its label · drag to rotate · pinch or scroll to zoom';
+      goal.theta=0.12; goal.phi=1.42;
       enterView();
     } else {
       buildMol(curIdx[v]);
@@ -1119,6 +1218,7 @@ body.focus #menuWrap{display:none!important}
   $('tLadder').addEventListener('change', e=>{ UI.ladder=e.target.checked; applyUI(); });
   $('tPanel').addEventListener('change', e=>{ UI.panel=e.target.checked; applyUI(); });
   $('tCard').addEventListener('change', e=>{ UI.card=e.target.checked; applyUI(); });
+  $('tLabels').addEventListener('change', e=>{ UI.labels=e.target.checked; applyUI(); });
   $('focusBtn').addEventListener('click', ()=>{ UI.focus=true; applyUI(); });
   $('showUI').addEventListener('click', ()=>{ UI.focus=false; applyUI(); });
 
@@ -1134,12 +1234,7 @@ body.focus #menuWrap{display:none!important}
   const showSpeed=()=>{ $('speedOut').textContent=(+slider.value).toFixed(1)+'×'; };
   slider.addEventListener('input', showSpeed); showSpeed();
 
-  // Fission controls
-  $('fisPlay').addEventListener('click', ()=>{
-    FIS.paused = !FIS.paused;
-    $('fisPlay').textContent = FIS.paused ? 'Play' : 'Pause';
-  });
-  $('fisReplay').addEventListener('click', ()=>buildFission());
+  $('organReset').addEventListener('click', ()=>reset());
 
   // ---------- Info card and focus ----------
   function showCard(title, rows, text){
@@ -1171,11 +1266,6 @@ body.focus #menuWrap{display:none!important}
   function focus(o){
     focused=o; const d=o.userData;
     rings.forEach(r=>{ r.material.opacity=0.28; });
-    if(view==='fission'){
-      if(d.type==='p') showCard('Proton', [['Charge','+1'],['Mass','1.007 u'],['Role','Determines the element']], 'A proton in the nucleus.');
-      else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Role','Adds mass, stabilizes the nucleus']], 'A neutron. Slow (thermal) neutrons can trigger fission.');
-      return;
-    }
     if(view!=='atom'){
       if(d.kind==='bond'){
         goal.radius=3.2;
@@ -1198,8 +1288,12 @@ body.focus #menuWrap{display:none!important}
     else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Made of','up, down, down quarks']], 'Neutrons add mass and help hold the nucleus together.');
   }
   function reset(){
-    focused=null; goal.target.set(0,0,0); goal.radius=defR;
-    rings.forEach(r=>{ r.material.opacity=0.28; }); card.classList.remove('on'); setPart(0); renderLadder(-1);
+    focused=null;
+    goal.target.set(0, view==='organs' ? 2 : 0, 0);
+    goal.radius=defR;
+    rings.forEach(r=>{ r.material.opacity=0.28; });
+    card.classList.remove('on'); setPart(0); renderLadder(-1);
+    ORGANS.forEach(x=>{ if(x.labelEl) x.labelEl.classList.remove('active'); });
   }
 
   // ---------- Camera, zoom, pan and picking ----------
@@ -1212,7 +1306,7 @@ body.focus #menuWrap{display:none!important}
   ray.near=0.01;
   const pickables=()=>{
     if(view==='table') return tableCells;
-    if(view==='fission') return FIS.nucleons.map(n => n.mesh);
+    if(view==='organs') return organPickables;
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
     return cloudMode ? nucleusParts : nucleusParts.concat(electrons);
   };
@@ -1276,8 +1370,9 @@ body.focus #menuWrap{display:none!important}
     if(view==='table'){
       if(hit) handleTableTap(hit.object.userData.Z);
       else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
-    } else if(view==='fission'){
-      if(hit) focus(hit.object);
+    } else if(view==='organs'){
+      if(hit && hit.object.userData.organ) focusOrgan(hit.object.userData.organ);
+      else reset();
     } else {
       hit ? focus(hit.object) : reset();
     }
@@ -1301,6 +1396,7 @@ body.focus #menuWrap{display:none!important}
   function resize(){
     renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
     if(view==='table' && tableBuilt){ defR=tableFit(); if(!userZoomed) goal.radius=defR; }
+    if(view==='organs' && organsBuilt){ defR=organFit(); if(!userZoomed) goal.radius=defR; }
   }
   addEventListener('resize', resize);
   addEventListener('orientationchange', ()=>setTimeout(resize,220));
@@ -1313,9 +1409,7 @@ body.focus #menuWrap{display:none!important}
   function tick(){
     const dt=Math.min(clock.getDelta(),0.1), t=clock.getElapsedTime(), speed=+slider.value;
 
-    if(view==='fission'){
-      updateFission(dt);
-    } else if(view==='atom'){
+    if(view==='atom'){
       electrons.forEach(e=>{ const d=e.userData; d.angle+=dt*d.speed*speed; e.position.set(Math.cos(d.angle)*d.r,0,Math.sin(d.angle)*d.r); });
       if(!reduceMotion){
         nucleusParts.forEach(m=>{ const d=m.userData,w=0.008; m.position.set(d.base0.x+Math.sin(t*3+d.phase)*w, d.base0.y+Math.cos(t*2.6+d.phase)*w, d.base0.z+Math.sin(t*3.3+d.phase*1.7)*w); });
@@ -1325,10 +1419,10 @@ body.focus #menuWrap{display:none!important}
       molRoot.rotation.y+=dt*speed*0.3;
     }
 
-    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='fission'?fisRoot:molRoot;
+    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='organs'?organRoot:molRoot;
     const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
 
-    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='fission') goal.theta+=dt*0.08;
+    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='organs') goal.theta+=dt*0.08;
     const k=1-Math.pow(0.001,dt);
     if(focused) focused.getWorldPosition(goal.target);
     cam.theta+=(goal.theta-cam.theta)*k; cam.phi+=(goal.phi-cam.phi)*k; cam.radius+=(goal.radius-cam.radius)*k; cam.target.lerp(goal.target,k);
@@ -1364,14 +1458,36 @@ body.focus #menuWrap{display:none!important}
         o.scale.setScalar(grow * u.hover);
         u.body.emissiveIntensity = clamp((u.hover-1)*4 + (u.Z===selectedZ ? 0.30 : 0), 0, 0.7);
       });
-    } else if(view==='fission'){
-      list.forEach(o=>{
-        const u=o.userData;
-        const want = (hovered && hovered.object === o) ? 1.25 : 1;
-        u.hover = u.hover || 1;
-        u.hover += (want-u.hover)*0.2;
-        o.scale.setScalar(u.hover);
+    } else if(view==='organs'){
+      const hoveredOrgan = hovered ? hovered.object.userData.organ : null;
+      ORGANS.forEach(o=>{
+        if(!o.group) return;
+        const isHot = (hoveredOrgan === o) || (labelHoveredOrgan === o) || (focused === o.group);
+        o.group.traverse(child=>{
+          if(child.isMesh && child.material && 'emissiveIntensity' in child.material){
+            child.material.emissiveIntensity += ((isHot ? 0.42 : 0) - child.material.emissiveIntensity) * 0.15;
+          }
+        });
+        if(o.labelEl){
+          o.labelEl.classList.toggle('hover', (hoveredOrgan === o) || (labelHoveredOrgan === o));
+          o.labelEl.classList.toggle('active', focused === o.group);
+        }
       });
+      // Update label positions
+      if(UI.labels && organLabelEls.length){
+        organLabelEls.forEach(({organ, el})=>{
+          if(!organ.group){ el.style.display='none'; return; }
+          const wp = new V();
+          organ.group.getWorldPosition(wp);
+          if(organ.labelOffset) wp.add(new V(organ.labelOffset[0], organ.labelOffset[1], organ.labelOffset[2]));
+          const p = wp.clone().project(camera);
+          if(p.z > 1){ el.style.display='none'; return; }
+          el.style.display='';
+          const x = (p.x * 0.5 + 0.5) * innerWidth;
+          const y = (-p.y * 0.5 + 0.5) * innerHeight;
+          el.style.transform = 'translate(' + x + 'px,' + (y - 8) + 'px) translate(-50%, -100%)';
+        });
+      }
     } else {
       list.forEach(o=>{
         const u=o.userData, want=((hovered&&hovered.object===o)||focused===o)?1.3:1;
@@ -1394,19 +1510,20 @@ body.focus #menuWrap{display:none!important}
           else card.classList.remove('on');
         } else card.classList.remove('on');
       }
-    } else if(view==='fission'){
-      const o = hovered ? hovered.object : null;
-      const key = o ? ('n-' + o.uuid) : ('p-' + FIS.phase);
-      if(key !== FIS.lastCardKey){
-        FIS.lastCardKey = key;
-        if(o && o.userData.type){
-          const type = o.userData.type;
-          if(type === 'p') showCard('Proton', [['Charge','+1'],['Mass','1.007 u'],['Role','Determines the element']], 'A proton in the nucleus.');
-          else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Role','Adds mass, stabilizes the nucleus']], 'A neutron. Slow (thermal) neutrons can trigger fission.');
-        } else {
-          const info = FIS_PHASE[FIS.phase] || FIS_PHASE.idle;
-          showCard(info.title, info.rows, info.text);
-        }
+    } else if(view==='organs'){
+      const o = hovered ? hovered.object.userData.organ : null;
+      if(o !== lastHover){
+        lastHover = o;
+        if(o){
+          const rows = [['System', o.system],['Function', o.fn]].concat((o.facts||[]).slice(0,3));
+          showCard(o.name, rows, o.description);
+        } else if(focused){
+          const fo = ORGANS.find(x => x.group === focused);
+          if(fo){
+            const rows = [['System', fo.system],['Function', fo.fn]].concat((fo.facts||[]).slice(0,3));
+            showCard(fo.name, rows, fo.description);
+          } else card.classList.remove('on');
+        } else card.classList.remove('on');
       }
     }
 
