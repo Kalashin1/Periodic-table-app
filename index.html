@@ -139,7 +139,7 @@ body.focus #menuWrap{display:none!important}
     <button data-view="atom">Atom model</button>
     <button data-view="mol">Hydrocarbons</button>
     <button data-view="amino">Amino acids</button>
-    <button data-view="physics">Physics lab</button>
+    <button data-view="solar">Solar system</button>
     <button data-view="table">Periodic table</button>
   </div>
   <div id="uiMenu" class="glass" hidden>
@@ -177,12 +177,12 @@ body.focus #menuWrap{display:none!important}
       <div class="chips" id="pickHeads" role="group" aria-label="Categories"></div>
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
     </div>
-    <div class="sec" id="physUI" hidden>
-      <div class="chips" id="physChips" role="group" aria-label="Physics scenario">
-        <button class="chip wide" type="button" data-scene="gravity">Gravity</button>
-        <button class="chip wide" type="button" data-scene="magnetism">Magnetism</button>
+    <div class="sec" id="solarUI" hidden>
+      <div class="chips" id="solarTools" role="group" aria-label="Solar system controls">
+        <button class="chip wide" id="solarOrbits" type="button" aria-pressed="true">Orbits</button>
+        <button class="chip wide" id="solarMoons" type="button" aria-pressed="true">Moons</button>
+        <button class="chip wide" id="solarReset" type="button">Reset view</button>
       </div>
-      <div id="physControls" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
     <div class="sec" id="tableUI" hidden>
       <div class="legend" id="tableLegend" aria-label="Element categories"></div>
@@ -313,8 +313,8 @@ body.focus #menuWrap{display:none!important}
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
-  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), physRoot = new THREE.Group();
-  scene.add(atomRoot, molRoot, tableRoot, physRoot);
+  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), solarRoot = new THREE.Group();
+  scene.add(atomRoot, molRoot, tableRoot, solarRoot);
   const partGeo = new THREE.SphereGeometry(0.2, 24, 16), partGeoLo = new THREE.SphereGeometry(0.2, 12, 8), eGeo = new THREE.SphereGeometry(0.14, 16, 12);
   const unitGeo = new THREE.SphereGeometry(1, 32, 20), cylGeo = new THREE.CylinderGeometry(0.07,0.07,1,12);
   const mP = new THREE.MeshStandardMaterial({color:0xff5a6e, emissive:0x4a0f18, roughness:.4});
@@ -608,490 +608,340 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
-  // ---------- Physics lab ----------
-  const PHYS = {
-    scene: 'gravity',
-    bodies: [],
-    magnets: [],
-    selected: null,
-    dragged: null,
-    draggingObj: false,
-    dragHistory: [],
-    mutualGravity: true,
-    G: 18,
-    gravity: 9.81,
-    nextId: 1,
-    fieldLines: null,
-    magnetFieldGroup: null
+  // ---------- Solar system ----------
+  const SOLAR = {
+    planets: [],
+    orbitLines: [],
+    sun: null,
+    sunGlow: null,
+    showOrbits: true,
+    showMoons: true
   };
-  const BODY_COLORS = { sphere:0xff9f1c, cube:0x4cc9f0, cylinder:0xa78bfa };
 
-  function buildPhysics(){
-    clearRoot(physRoot);
-    PHYS.bodies = []; PHYS.magnets = []; PHYS.selected = null;
-    PHYS.dragged = null; PHYS.draggingObj = false; PHYS.dragHistory = [];
-    PHYS.fieldLines = null;
+  const PLANET_DATA = [
+    {
+      name: 'Mercury', color: 0xb8b0a8, radius: 0.25, orbitRadius: 4.5,
+      period: 0.24, initAngle: 0,
+      info: {
+        distance: '0.39 AU', period: '88 days', rotation: '58.6 days', moons: 0,
+        desc: 'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.'
+      }
+    },
+    {
+      name: 'Venus', color: 0xe8c17e, radius: 0.5, orbitRadius: 6.2,
+      period: 0.62, initAngle: 1.2,
+      info: {
+        distance: '0.72 AU', period: '225 days', rotation: '243 days (retrograde)', moons: 0,
+        desc: 'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.'
+      }
+    },
+    {
+      name: 'Earth', color: 0x4a90d9, radius: 0.55, orbitRadius: 8.2,
+      period: 1.0, initAngle: 2.8,
+      moons: [
+        { name: 'Moon', color: 0xcccccc, radius: 0.15, orbitRadius: 1.3, speed: 1.4,
+          info: { period: '27.3 days', diameter: '3,474 km', desc: 'Earth\'s only natural satellite. Stabilises Earth\'s axial tilt.' } }
+      ],
+      info: {
+        distance: '1.00 AU', period: '365.25 days', rotation: '24 hours', moons: 1,
+        desc: 'The only known planet with liquid water on its surface and life. Has a strong magnetic field and one large moon.'
+      }
+    },
+    {
+      name: 'Mars', color: 0xc1440e, radius: 0.35, orbitRadius: 10.4,
+      period: 1.88, initAngle: 4.1,
+      moons: [
+        { name: 'Phobos', color: 0xaaaaaa, radius: 0.045, orbitRadius: 0.75, speed: 2.0,
+          info: { period: '7.7 hours', diameter: '22 km', desc: 'The larger, inner moon of Mars. Orbits faster than Mars rotates.' } },
+        { name: 'Deimos', color: 0xbbbbbb, radius: 0.035, orbitRadius: 1.1, speed: 1.1,
+          info: { period: '30 hours', diameter: '12 km', desc: 'The smaller, outer moon of Mars.' } }
+      ],
+      info: {
+        distance: '1.52 AU', period: '687 days', rotation: '24.6 hours', moons: 2,
+        desc: 'The red planet. Home to Olympus Mons, the tallest volcano in the solar system.'
+      }
+    },
+    {
+      name: 'Jupiter', color: 0xd4a373, radius: 1.4, orbitRadius: 15,
+      period: 11.86, initAngle: 5.3,
+      moons: [
+        { name: 'Io', color: 0xffcc44, radius: 0.09, orbitRadius: 2.5, speed: 1.8,
+          info: { period: '1.77 days', diameter: '3,643 km', desc: 'The most volcanically active body in the solar system.' } },
+        { name: 'Europa', color: 0xe8dcc0, radius: 0.08, orbitRadius: 3.2, speed: 1.4,
+          info: { period: '3.55 days', diameter: '3,122 km', desc: 'Has a subsurface ocean that may harbour life.' } },
+        { name: 'Ganymede', color: 0xb8a890, radius: 0.11, orbitRadius: 4.0, speed: 1.0,
+          info: { period: '7.15 days', diameter: '5,268 km', desc: 'The largest moon in the solar system — bigger than Mercury.' } },
+        { name: 'Callisto', color: 0x887766, radius: 0.10, orbitRadius: 4.9, speed: 0.7,
+          info: { period: '16.7 days', diameter: '4,821 km', desc: 'One of the most heavily cratered objects in the solar system.' } }
+      ],
+      info: {
+        distance: '5.20 AU', period: '11.86 years', rotation: '9.9 hours', moons: 95,
+        desc: 'The largest planet — a gas giant with the Great Red Spot, a storm larger than Earth.'
+      }
+    },
+    {
+      name: 'Saturn', color: 0xe3c78a, radius: 1.2, orbitRadius: 20,
+      period: 29.46, initAngle: 0.4, ring: true,
+      moons: [
+        { name: 'Titan', color: 0xddaa66, radius: 0.10, orbitRadius: 2.6, speed: 1.0,
+          info: { period: '16 days', diameter: '5,150 km', desc: 'Saturn\'s largest moon, with a thick nitrogen atmosphere and methane lakes.' } },
+        { name: 'Rhea', color: 0xcccccc, radius: 0.05, orbitRadius: 2.0, speed: 1.6,
+          info: { period: '4.5 days', diameter: '1,527 km', desc: 'A heavily cratered moon of Saturn.' } }
+      ],
+      info: {
+        distance: '9.58 AU', period: '29.46 years', rotation: '10.7 hours', moons: 146,
+        desc: 'Famous for its spectacular rings of ice and rock, which span over 280,000 km but are only tens of metres thick.'
+      }
+    },
+    {
+      name: 'Uranus', color: 0xa2d8e8, radius: 0.9, orbitRadius: 25,
+      period: 84.01, initAngle: 2.2,
+      moons: [
+        { name: 'Titania', color: 0xbbbbbb, radius: 0.06, orbitRadius: 1.8, speed: 1.2,
+          info: { period: '8.7 days', diameter: '1,578 km', desc: 'The largest moon of Uranus, with deep canyons.' } }
+      ],
+      info: {
+        distance: '19.22 AU', period: '84.01 years', rotation: '17.2 hours (retrograde)', moons: 28,
+        desc: 'An ice giant that rotates on its side — likely the result of a massive ancient collision.'
+      }
+    },
+    {
+      name: 'Neptune', color: 0x3c5eb8, radius: 0.9, orbitRadius: 30,
+      period: 164.8, initAngle: 3.9,
+      moons: [
+        { name: 'Triton', color: 0xbbbbbb, radius: 0.06, orbitRadius: 1.8, speed: 1.2,
+          info: { period: '5.9 days', diameter: '2,707 km', desc: 'A moon with a retrograde orbit — likely a captured Kuiper Belt object.' } }
+      ],
+      info: {
+        distance: '30.05 AU', period: '164.8 years', rotation: '16.1 hours', moons: 16,
+        desc: 'The windiest planet, with winds exceeding 2,000 km/h.'
+      }
+    }
+  ];
 
-    if (PHYS.scene === 'gravity') buildGravityScene();
-    else if (PHYS.scene === 'magnetism') buildMagnetScene();
+  function buildSolarSystem(){
+    clearRoot(solarRoot);
+    SOLAR.planets = [];
+    SOLAR.orbitLines = [];
+    SOLAR.sun = null;
+    SOLAR.sunGlow = null;
 
-    updatePhysChips();
-    updatePhysControls();
-  }
-
-  // ----- Gravity scene -----
-  function buildGravityScene(){
-    const grid = new THREE.GridHelper(30, 30, 0x3a5a7a, 0x1e3450);
-    physRoot.add(grid);
-
-    defR = 22;
-    goal.target.set(0, 3, 0);
-    goal.theta = 0.45; goal.phi = 1.35;
-
-    addBody('sphere', new THREE.Vector3(-2.5, 6, 0), 1.5, 0.7);
-    addBody('cube',   new THREE.Vector3(0,   6.5, 0), 2.5, 0.6);
-    addBody('cylinder', new THREE.Vector3(2.5, 5.5, 0), 1.0, 0.6);
-
-    $('title').textContent = 'Gravity & motion';
-    $('sub').textContent = 'Drag objects to throw them · edit mass and radius below · objects attract each other';
-    showCard('Gravity sandbox', [
-      ['Gravity', '9.81 m/s² (down)'],
-      ['Mutual G', PHYS.mutualGravity ? PHYS.G : 'off'],
-      ['Objects', PHYS.bodies.length]
-    ], 'Drag any object to give it velocity. Objects fall under gravity, bounce on the floor, and pull on each other.');
-  }
-
-  function addBody(type, position, mass, radius){
-    const color = BODY_COLORS[type] || 0x4cc9f0;
-    const mat = vivid(color, 0.25);
-    let geo;
-    if (type === 'sphere') geo = new THREE.SphereGeometry(1, 24, 16);
-    else if (type === 'cube') geo = new THREE.BoxGeometry(2, 2, 2);
-    else if (type === 'cylinder') geo = new THREE.CylinderGeometry(1, 1, 2, 20);
-    else return null;
-
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.scale.setScalar(radius);
-    mesh.position.copy(position);
-
-    const body = {
-      id: PHYS.nextId++,
-      type, mesh, mass, radius, color,
-      velocity: new THREE.Vector3(),
-      restitution: 0.65
+    // Sun
+    const sunMat = new THREE.MeshStandardMaterial({
+      color: 0xffdd44, emissive: 0xffaa00, emissiveIntensity: 3.0, roughness: 0.4
+    });
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), sunMat);
+    sun.userData.solar = {
+      name: 'The Sun', isSun: true,
+      info: {
+        desc: 'A G-type main-sequence star at the centre of the solar system. It contains 99.8% of the total mass and generates energy by fusing hydrogen into helium.'
+      }
     };
-    mesh.userData.body = body;
+    solarRoot.add(sun);
+    SOLAR.sun = sun;
 
-    physRoot.add(mesh);
-    PHYS.bodies.push(body);
-    return body;
-  }
-
-  function computeVolume(type, radius){
-    if (type === 'sphere') return (4/3) * Math.PI * radius**3;
-    if (type === 'cube') return (2*radius)**3;
-    if (type === 'cylinder') return Math.PI * radius**2 * 2 * radius;
-    return 0;
-  }
-
-  function updateGravityPhysics(dt){
-    if (!PHYS.bodies.length) return;
-    const G = PHYS.mutualGravity ? PHYS.G : 0;
-    const g = PHYS.gravity;
-
-    // Accelerations
-    for (let i = 0; i < PHYS.bodies.length; i++){
-      const b = PHYS.bodies[i];
-      if (b === PHYS.dragged) continue;
-      b.velocity.y -= g * dt;
-
-      for (let j = 0; j < PHYS.bodies.length; j++){
-        if (i === j) continue;
-        const other = PHYS.bodies[j];
-        const d = other.mesh.position.clone().sub(b.mesh.position);
-        const dist = Math.max(d.length(), 0.4);
-        const acc = (G * other.mass) / (dist * dist);
-        b.velocity.addScaledVector(d.normalize(), acc * dt);
-      }
-    }
-
-    // Integrate + floor bounce
-    for (const b of PHYS.bodies){
-      if (b === PHYS.dragged) continue;
-      b.mesh.position.addScaledVector(b.velocity, dt);
-
-      if (b.mesh.position.y - b.radius < 0){
-        b.mesh.position.y = b.radius;
-        if (b.velocity.y < 0){
-          b.velocity.y = -b.velocity.y * b.restitution;
-          b.velocity.x *= 0.93;
-          b.velocity.z *= 0.93;
-          if (Math.abs(b.velocity.y) < 0.6) b.velocity.y = 0;
-        }
-      }
-    }
-
-    // Object collisions
-    for (let i = 0; i < PHYS.bodies.length; i++){
-      for (let j = i+1; j < PHYS.bodies.length; j++){
-        const a = PHYS.bodies[i], b = PHYS.bodies[j];
-        const d = b.mesh.position.clone().sub(a.mesh.position);
-        const dist = d.length();
-        const minDist = a.radius + b.radius;
-        if (dist < minDist && dist > 0.001){
-          const normal = d.clone().divideScalar(dist);
-          const overlap = (minDist - dist) / 2;
-          if (a !== PHYS.dragged) a.mesh.position.addScaledVector(normal, -overlap);
-          if (b !== PHYS.dragged) b.mesh.position.addScaledVector(normal, overlap);
-
-          const vRel = a.velocity.clone().sub(b.velocity).dot(normal);
-          if (vRel > 0) continue;
-
-          const totalMass = a.mass + b.mass;
-          const e = Math.min(a.restitution, b.restitution);
-          const impulse = (1 + e) * vRel;
-
-          if (a !== PHYS.dragged) a.velocity.addScaledVector(normal, -impulse * b.mass / totalMass);
-          if (b !== PHYS.dragged) b.velocity.addScaledVector(normal, impulse * a.mass / totalMass);
-        }
-      }
-    }
-
-    // Highlight + live card
-    PHYS.bodies.forEach(b => {
-      b.mesh.material.emissiveIntensity = (b === PHYS.selected) ? 0.6 : 0.25;
+    // Sun glow
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa33, transparent: true, opacity: 0.18,
+      blending: THREE.AdditiveBlending, depthWrite: false
     });
-  }
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(2.4, 32, 24), glowMat);
+    glow.raycast = () => {};
+    solarRoot.add(glow);
+    SOLAR.sunGlow = glow;
 
-  // ----- Magnetism scene -----
-  function createMagnet(position, northRight){
-    const group = new THREE.Group();
-    const nMat = new THREE.MeshStandardMaterial({color: 0xff3355, emissive: 0x551010, emissiveIntensity: 0.4, roughness: 0.4});
-    const sMat = new THREE.MeshStandardMaterial({color: 0x3355ff, emissive: 0x101055, emissiveIntensity: 0.4, roughness: 0.4});
+    // Point light at the sun
+    const sunLight = new THREE.PointLight(0xffdd88, 2.0, 150);
+    solarRoot.add(sunLight);
 
-    const nBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), nMat);
-    nBox.position.x = northRight ? 0.3 : -0.3;
-    const sBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), sMat);
-    sBox.position.x = northRight ? -0.3 : 0.3;
+    // Planets
+    PLANET_DATA.forEach(p => {
+      const group = new THREE.Group();
+      solarRoot.add(group);
 
-    const nLabel = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), vivid(0xffe14d, 0.6));
-    nLabel.position.set(northRight ? 0.65 : -0.65, 0, 0);
-
-    group.add(nBox, sBox, nLabel);
-    group.position.copy(position);
-
-    const magnet = { group, northRight, strength: 1 };
-    group.userData.magnet = magnet;
-    nBox.userData.magnet = magnet;
-    sBox.userData.magnet = magnet;
-    nLabel.userData.magnet = magnet;
-    return magnet;
-  }
-
-  function buildMagnetScene(){
-    const magA = createMagnet(new THREE.Vector3(-2, 1, 0), true);
-    const magB = createMagnet(new THREE.Vector3(2, 1, 0), true);
-    physRoot.add(magA.group, magB.group);
-    PHYS.magnets = [magA, magB];
-
-    magA.forceArrow = new THREE.ArrowHelper(new V(1,0,0), new V(0,0,0), 1, 0x4cc9f0, 0.3, 0.15);
-    magB.forceArrow = new THREE.ArrowHelper(new V(-1,0,0), new V(0,0,0), 1, 0x4cc9f0, 0.3, 0.15);
-    physRoot.add(magA.forceArrow, magB.forceArrow);
-
-    const fieldGroup = new THREE.Group();
-    physRoot.add(fieldGroup);
-    PHYS.magnetFieldGroup = fieldGroup;
-
-    defR = 15;
-    goal.target.set(0, 1, 0);
-    goal.theta = 0.3; goal.phi = 1.35;
-
-    $('title').textContent = 'Magnetism';
-    $('sub').textContent = 'Drag either magnet · force depends on distance and pole orientation';
-    showCard('Magnetism', [
-      ['Force law', 'F ∝ 1/r²'],
-      ['Range', '2–10 units']
-    ], 'Drag the magnets anywhere. When their poles face each other the force arrows show the direction and strength of the magnetic force.');
-  }
-
-  function magnetForce(){
-    const [a, b] = PHYS.magnets;
-    const d = b.group.position.clone().sub(a.group.position);
-    const dist = Math.max(d.length(), 0.3);
-    const dir = d.clone().divideScalar(dist);
-
-    const aRight = new V(1,0,0).applyQuaternion(a.group.quaternion);
-    const bRight = new V(1,0,0).applyQuaternion(b.group.quaternion);
-
-    const aRightTowardB = dir.dot(aRight) > 0;
-    const bRightTowardA = -dir.dot(bRight) > 0;
-
-    const aPole = (a.northRight === aRightTowardB) ? 'N' : 'S';
-    const bPole = (b.northRight === bRightTowardA) ? 'N' : 'S';
-    const attract = aPole !== bPole;
-
-    const k = 32 * a.strength * b.strength;
-    const mag = k / (dist * dist);
-    return { dist, dir, attract, mag, aPole, bPole };
-  }
-
-  function updateMagnetism(dt){
-    if (PHYS.magnets.length < 2) return;
-    const f = magnetForce();
-    const [a, b] = PHYS.magnets;
-
-    const MIN_DIST = 1.4;
-    const sign = f.attract ? 1 : -1;
-
-    // Apply gentle motion when not dragging
-    if (a.group !== PHYS.dragged){
-      const step = Math.min(f.mag * 0.05, 3) * dt;
-      a.group.position.addScaledVector(f.dir, sign * step);
-    }
-    if (b.group !== PHYS.dragged){
-      const step = Math.min(f.mag * 0.05, 3) * dt;
-      b.group.position.addScaledVector(f.dir, -sign * step);
-    }
-
-    // Prevent overlap
-    const newDist = a.group.position.distanceTo(b.group.position);
-    if (newDist < MIN_DIST){
-      const push = (MIN_DIST - newDist) / 2;
-      const nd = b.group.position.clone().sub(a.group.position).normalize();
-      a.group.position.addScaledVector(nd, -push);
-      b.group.position.addScaledVector(nd, push);
-    }
-
-    // Update arrows
-    const arrowLen = Math.min(f.mag * 0.08, 2.5);
-    a.forceArrow.position.copy(a.group.position);
-    b.forceArrow.position.copy(b.group.position);
-    a.forceArrow.visible = arrowLen > 0.15;
-    b.forceArrow.visible = arrowLen > 0.15;
-    if (f.attract){
-      a.forceArrow.setDirection(f.dir);
-      b.forceArrow.setDirection(f.dir.clone().negate());
-    } else {
-      a.forceArrow.setDirection(f.dir.clone().negate());
-      b.forceArrow.setDirection(f.dir);
-    }
-    a.forceArrow.setLength(arrowLen, 0.3, 0.15);
-    b.forceArrow.setLength(arrowLen, 0.3, 0.15);
-
-    // Field lines
-    while (PHYS.magnetFieldGroup.children.length){
-      const c = PHYS.magnetFieldGroup.children[0];
-      PHYS.magnetFieldGroup.remove(c);
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
-    }
-    const lineMat = new THREE.MeshBasicMaterial({color:0x4cc9f0, transparent:true, opacity: 0.55});
-    if (f.dist < 10){
-      if (f.attract){
-        const start = a.group.position.clone().add(f.dir.clone().multiplyScalar(0.6));
-        const end = b.group.position.clone().add(f.dir.clone().multiplyScalar(-0.6));
-        for (let i = 0; i < 3; i++){
-          const mid = start.clone().add(end).multiplyScalar(0.5);
-          mid.y += 0.6 + i * 0.2;
-          const curve = new THREE.QuadraticBezierCurve3(
-            start.clone().add(new V(0, (i-1)*0.15, (i-1)*0.15)),
-            mid,
-            end.clone().add(new V(0, (i-1)*0.15, (i-1)*0.15))
-          );
-          PHYS.magnetFieldGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.02, 4, false), lineMat));
-        }
-      } else {
-        [a, b].forEach((m, idx) => {
-          const outward = idx === 0 ? f.dir.clone().negate() : f.dir.clone();
-          for (let i = 0; i < 3; i++){
-            const start = m.group.position.clone().add(outward.clone().multiplyScalar(0.6));
-            const end = start.clone().add(outward.clone().multiplyScalar(2.5)).add(new V(0, 0.8 + i*0.2, (i-1)*0.4));
-            const mid = start.clone().add(end).multiplyScalar(0.5);
-            mid.y += 0.9;
-            const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-            PHYS.magnetFieldGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.02, 4, false), lineMat));
-          }
-        });
-      }
-    }
-
-    if (PHYS.selected === a || PHYS.selected === b){
-      // Refresh card with live values
-      if (!PHYS.lastCardUpdate || performance.now() - PHYS.lastCardUpdate > 250){
-        PHYS.lastCardUpdate = performance.now();
-        showCard('Magnetism', [
-          ['Distance', f.dist.toFixed(2)],
-          ['Poles', f.aPole + ' ↔ ' + f.bPole],
-          ['Force', (f.attract ? 'attract' : 'repel') + ' · ' + f.mag.toFixed(2)]
-        ], f.attract ? 'Opposite poles attract. Field lines curve from N to S.' : 'Like poles repel. Each field pushes outward.');
-      }
-    }
-  }
-
-  // ----- Physics UI -----
-  function updatePhysChips(){
-    document.querySelectorAll('#physChips [data-scene]').forEach(b=>{
-      b.setAttribute('aria-pressed', b.dataset.scene === PHYS.scene ? 'true' : 'false');
-    });
-  }
-  function addPhysSlider(parent, label, min, max, value, unit, onChange){
-    const row = document.createElement('div');
-    row.className = 'speed';
-    const lbl = document.createElement('label');
-    lbl.textContent = label;
-    const inp = document.createElement('input');
-    inp.type = 'range'; inp.min = min; inp.max = max;
-    inp.step = (max - min) / 100; inp.value = value;
-    const out = document.createElement('output');
-    out.textContent = (+value).toFixed(2) + unit;
-    inp.addEventListener('input', ()=>{
-      out.textContent = (+inp.value).toFixed(2) + unit;
-      onChange(+inp.value);
-    });
-    row.append(lbl, inp, out);
-    parent.appendChild(row);
-  }
-  function addPhysButton(parent, label, onClick){
-    const b = document.createElement('button');
-    b.className = 'chip wide'; b.type = 'button'; b.textContent = label;
-    b.addEventListener('click', onClick);
-    parent.appendChild(b);
-    return b;
-  }
-
-  function updatePhysControls(){
-    const box = $('physControls');
-    box.innerHTML = '';
-
-    if (PHYS.scene === 'gravity'){
-      // Add-object row
-      const addRow = document.createElement('div');
-      addRow.className = 'chips';
-      ['sphere','cube','cylinder'].forEach(t=>{
-        const b = document.createElement('button');
-        b.className = 'chip wide'; b.type = 'button';
-        b.textContent = '+ ' + t.charAt(0).toUpperCase() + t.slice(1);
-        b.addEventListener('click', ()=>{
-          const body = addBody(t, new THREE.Vector3(
-            (Math.random() - 0.5) * 6,
-            7 + Math.random() * 2,
-            (Math.random() - 0.5) * 3
-          ), 1.5, 0.6);
-          PHYS.selected = body;
-          updatePhysControls();
-          showCard(body.type.charAt(0).toUpperCase() + body.type.slice(1) + ' #' + body.id, [
-            ['Mass', body.mass.toFixed(2) + ' kg'],
-            ['Radius', body.radius.toFixed(2) + ' m'],
-            ['Volume', computeVolume(body.type, body.radius).toFixed(2) + ' m³']
-          ], 'Drag it to throw · edit properties below.');
-        });
-        addRow.appendChild(b);
+      const mat = new THREE.MeshStandardMaterial({
+        color: p.color, roughness: 0.72, metalness: 0.05,
+        emissive: p.color, emissiveIntensity: 0.1
       });
-      const clearBtn = document.createElement('button');
-      clearBtn.className = 'chip wide'; clearBtn.type = 'button'; clearBtn.textContent = 'Clear';
-      clearBtn.addEventListener('click', ()=>{
-        PHYS.bodies.forEach(b => physRoot.remove(b.mesh));
-        PHYS.bodies = []; PHYS.selected = null;
-        updatePhysControls();
-      });
-      addRow.appendChild(clearBtn);
-      box.appendChild(addRow);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 28, 20), mat);
+      mesh.userData.solar = { name: p.name, planet: true, info: p.info };
+      group.add(mesh);
 
-      // Object list
-      if (PHYS.bodies.length){
-        const listRow = document.createElement('div');
-        listRow.className = 'chips';
-        PHYS.bodies.forEach(b=>{
-          const btn = document.createElement('button');
-          btn.className = 'chip wide'; btn.type = 'button';
-          btn.textContent = b.type + ' #' + b.id;
-          btn.setAttribute('aria-pressed', b === PHYS.selected);
-          btn.addEventListener('click', ()=>{
-            PHYS.selected = b;
-            updatePhysControls();
+      // Orbit line
+      const segs = 128, pts = [];
+      for (let i = 0; i <= segs; i++){
+        const a = i / segs * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.cos(a) * p.orbitRadius, 0, Math.sin(a) * p.orbitRadius));
+      }
+      const orbitLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.22 })
+      );
+      solarRoot.add(orbitLine);
+      SOLAR.orbitLines.push(orbitLine);
+
+      // Saturn ring
+      if (p.ring){
+        const ringGeo = new THREE.RingGeometry(p.radius * 1.4, p.radius * 2.2, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0xd8c088, side: THREE.DoubleSide,
+          transparent: true, opacity: 0.55
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2 + 0.15;
+        group.add(ring);
+      }
+
+      // Moons
+      const moons = [];
+      if (p.moons){
+        p.moons.forEach(m => {
+          const moonMat = new THREE.MeshStandardMaterial({
+            color: m.color, roughness: 0.85, metalness: 0.0,
+            emissive: m.color, emissiveIntensity: 0.08
           });
-          listRow.appendChild(btn);
+          const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.radius, 16, 12), moonMat);
+          moonMesh.userData.solar = {
+            name: m.name, moon: true, parentPlanet: p.name,
+            info: Object.assign({ parent: p.name }, m.info)
+          };
+          group.add(moonMesh);
+          moons.push({
+            mesh: moonMesh, data: m,
+            orbitRadius: m.orbitRadius, speed: m.speed,
+            angle: Math.random() * Math.PI * 2
+          });
         });
-        box.appendChild(listRow);
       }
 
-      // Selected properties
-      if (PHYS.selected){
-        const s = PHYS.selected;
-        addPhysSlider(box, 'Mass', 0.1, 20, s.mass, ' kg', v => { s.mass = v; });
-        addPhysSlider(box, 'Radius', 0.2, 2, s.radius, ' m', v => {
-          s.radius = v;
-          s.mesh.scale.setScalar(v);
-        });
-        const volRow = document.createElement('div');
-        volRow.className = 'speed';
-        volRow.innerHTML = '<label>Volume</label><span style="flex:1;text-align:right">' +
-          computeVolume(s.type, s.radius).toFixed(2) + ' m³</span>';
-        box.appendChild(volRow);
-      }
+      const angularSpeed = 0.6 / Math.pow(p.period, 0.4);
 
-      // Mutual gravity toggle
-      const toggleRow = document.createElement('div');
-      toggleRow.className = 'chips';
-      const tg = document.createElement('button');
-      tg.className = 'btn switch'; tg.type = 'button';
-      tg.setAttribute('role', 'switch');
-      tg.setAttribute('aria-checked', PHYS.mutualGravity ? 'true' : 'false');
-      tg.textContent = 'Mutual gravity';
-      tg.addEventListener('click', ()=>{
-        PHYS.mutualGravity = !PHYS.mutualGravity;
-        tg.setAttribute('aria-checked', PHYS.mutualGravity ? 'true' : 'false');
+      SOLAR.planets.push({
+        data: p, mesh, group, moons,
+        orbitRadius: p.orbitRadius,
+        angle: p.initAngle,
+        angularSpeed
       });
-      toggleRow.appendChild(tg);
-      box.appendChild(toggleRow);
-    } else if (PHYS.scene === 'magnetism'){
-      // Pole orientation toggles
-      const poleRow = document.createElement('div');
-      poleRow.className = 'chips';
-      PHYS.magnets.forEach((m, idx) => {
-        const b = document.createElement('button');
-        b.className = 'chip wide'; b.type = 'button';
-        b.textContent = 'Mag ' + (idx === 0 ? 'A' : 'B') + ': N ' + (m.northRight ? '→' : '←');
-        b.addEventListener('click', ()=>{
-          m.northRight = !m.northRight;
-          // Rebuild magnet mesh
-          const pos = m.group.position.clone();
-          const newMag = createMagnet(pos, m.northRight);
-          physRoot.remove(m.group);
-          physRoot.add(newMag.group);
-          PHYS.magnets[idx] = newMag;
-          newMag.forceArrow = m.forceArrow;
-          updatePhysControls();
-        });
-        poleRow.appendChild(b);
-      });
-      box.appendChild(poleRow);
 
-      // Force readout
-      if (PHYS.magnets.length === 2){
-        const f = magnetForce();
-        const infoRow = document.createElement('div');
-        infoRow.className = 'speed';
-        infoRow.innerHTML = '<label>Force</label><span style="flex:1;text-align:right">' +
-          (f.attract ? 'attract' : 'repel') + ' · ' + f.mag.toFixed(2) + ' (dist ' + f.dist.toFixed(2) + ')</span>';
-        box.appendChild(infoRow);
-      }
+      group.position.x = Math.cos(p.initAngle) * p.orbitRadius;
+      group.position.z = Math.sin(p.initAngle) * p.orbitRadius;
+    });
+
+    defR = 60;
+    goal.target.set(0, 0, 0);
+    goal.theta = 0.5;
+    goal.phi = 1.15;
+
+    $('title').textContent = 'Solar system';
+    $('sub').textContent = 'Click any planet or moon for details · drag to orbit the camera · scroll to zoom';
+
+    showCard('The Solar System', [
+      ['Star', 'The Sun (G-type)'],
+      ['Planets', '8'],
+      ['Age', '~4.6 billion years']
+    ], 'The Sun contains 99.8% of the solar system\'s mass. Each planet orbits under the Sun\'s gravity.');
+
+    updateSolarControls();
+  }
+
+  function updateSolar(dt){
+    const speed = +slider.value;
+    if (speed <= 0.01) return;
+
+    SOLAR.planets.forEach(p => {
+      p.angle += p.angularSpeed * speed * dt;
+      p.group.position.x = Math.cos(p.angle) * p.orbitRadius;
+      p.group.position.z = Math.sin(p.angle) * p.orbitRadius;
+
+      p.mesh.rotation.y += 0.4 * speed * dt;
+
+      p.moons.forEach(m => {
+        m.angle += m.speed * speed * dt * 0.5;
+        m.mesh.position.x = Math.cos(m.angle) * m.orbitRadius;
+        m.mesh.position.z = Math.sin(m.angle) * m.orbitRadius;
+      });
+    });
+
+    if (SOLAR.sun) SOLAR.sun.rotation.y += 0.15 * speed * dt;
+    if (SOLAR.sunGlow){
+      const pulse = 1 + Math.sin(performance.now() * 0.0008) * 0.04;
+      SOLAR.sunGlow.scale.setScalar(pulse);
     }
   }
 
-  $('physChips').addEventListener('click', e=>{
-    const b = e.target.closest('[data-scene]');
-    if(!b) return;
-    PHYS.scene = b.dataset.scene;
-    buildPhysics();
+  function showSolarInfo(body){
+    if (!body) return;
+    if (body.isSun){
+      showCard('The Sun', [
+        ['Type', 'G-type main-sequence'],
+        ['Radius', '696,000 km'],
+        ['Surface temperature', '5,500 °C'],
+        ['Mass', '333,000 Earths']
+      ], body.info.desc);
+    } else if (body.planet){
+      showCard(body.name, [
+        ['Distance from Sun', body.info.distance],
+        ['Orbital period', body.info.period],
+        ['Rotation period', body.info.rotation],
+        ['Moons', body.info.moons]
+      ], body.info.desc);
+    } else if (body.moon){
+      showCard(body.name, [
+        ['Orbits', body.info.parent],
+        ['Orbital period', body.info.period],
+        ['Diameter', body.info.diameter]
+      ], body.info.desc);
+    }
+  }
+
+  function focusSolar(body){
+    if (!body) return;
+    const info = body.userData.solar;
+    if (!info) return;
+
+    if (info.isSun){
+      focused = SOLAR.sun;
+      goal.radius = 8;
+    } else if (info.planet){
+      const planet = SOLAR.planets.find(p => p.data.name === info.name);
+      if (planet){
+        focused = planet.mesh;
+        const maxMoonOrbit = planet.moons.reduce((mx, m) => Math.max(mx, m.orbitRadius), 0);
+        goal.radius = Math.max(planet.data.radius * 4, maxMoonOrbit * 2 + planet.data.radius * 2, 3);
+      }
+    } else if (info.moon){
+      focused = body;
+      goal.radius = 0.8;
+    }
+    showSolarInfo(info);
+  }
+
+  function updateSolarControls(){
+    const ob = $('solarOrbits'), mo = $('solarMoons');
+    if (ob) ob.setAttribute('aria-pressed', SOLAR.showOrbits ? 'true' : 'false');
+    if (mo) mo.setAttribute('aria-pressed', SOLAR.showMoons ? 'true' : 'false');
+  }
+
+  $('solarOrbits').addEventListener('click', ()=>{
+    SOLAR.showOrbits = !SOLAR.showOrbits;
+    SOLAR.orbitLines.forEach(l => l.visible = SOLAR.showOrbits);
+    updateSolarControls();
+  });
+  $('solarMoons').addEventListener('click', ()=>{
+    SOLAR.showMoons = !SOLAR.showMoons;
+    SOLAR.planets.forEach(p => p.moons.forEach(m => m.mesh.visible = SOLAR.showMoons));
+    updateSolarControls();
+  });
+  $('solarReset').addEventListener('click', ()=>{
+    focused = null;
+    goal.target.set(0, 0, 0);
+    goal.radius = 60;
+    goal.theta = 0.5;
+    goal.phi = 1.15;
+    card.classList.remove('on');
   });
 
-  function updatePhysics(dt){
-    if (PHYS.scene === 'gravity') updateGravityPhysics(dt);
-    else if (PHYS.scene === 'magnetism') updateMagnetism(dt);
-  }
-
-  // ---------- Periodic table (only specific columns move) ----------
+  // ---------- Periodic table ----------
   const CATS=['Alkali metal','Alkaline earth','Transition metal','Post-transition','Metalloid','Nonmetal','Halogen','Noble gas','Lanthanide','Actinide'];
   const CATC=[0xf87171,0xfb923c,0x6366f1,0x2dd4bf,0xa78bfa,0x4ade80,0xa3e635,0xf472b6,0x38bdf8,0xe879f9];
   function catOf(Z){
@@ -1183,7 +1033,6 @@ body.focus #menuWrap{display:none!important}
     });
     if(!selectedSection || !selectedZ) return;
 
-    // Only specific sections animate
     if (!isMovable(selectedSection)){
       tableCells.forEach(o=>{
         if (o.userData.Z === selectedZ){
@@ -1354,7 +1203,7 @@ body.focus #menuWrap{display:none!important}
   // ---------- Views and menu ----------
   function enterView(){
     focused=null; lastHover=null;
-    if(view !== 'physics') goal.target.set(0, 0, 0);
+    if(view !== 'solar') goal.target.set(0, 0, 0);
     goal.radius = defR;
     born = clock.getElapsedTime();
     card.classList.remove('on'); setPart(0); renderLadder(-1);
@@ -1363,18 +1212,18 @@ body.focus #menuWrap{display:none!important}
   function setView(v){
     const prev=view;
     view=v;
-    const atom=v==='atom', table=v==='table', physics=v==='physics';
+    const atom=v==='atom', table=v==='table', solar=v==='solar';
     atomRoot.visible=atom;
-    molRoot.visible=!atom&&!table&&!physics;
+    molRoot.visible=!atom&&!table&&!solar;
     tableRoot.visible=table;
-    physRoot.visible=physics;
+    solarRoot.visible=solar;
     $('atomUI').hidden=!atom;
-    $('molUI').hidden=atom||table||physics;
-    $('physUI').hidden=!physics;
+    $('molUI').hidden=atom||table||solar;
+    $('solarUI').hidden=!solar;
     $('tableUI').hidden=!table;
     $('speedRow').hidden=table;
     ladder.hidden=!atom;
-    $('speedLabel').textContent = atom ? 'Electron speed' : (physics ? 'Time scale' : 'Spin speed');
+    $('speedLabel').textContent = atom ? 'Electron speed' : (solar ? 'Time scale' : 'Spin speed');
     openGroup=null; userZoomed=false;
     if(atom){
       $('title').textContent=cur.name;
@@ -1388,8 +1237,8 @@ body.focus #menuWrap{display:none!important}
       clearTableSelection();
       goal.theta=0; goal.phi=1.26;
       enterView();
-    } else if(physics){
-      buildPhysics();
+    } else if(solar){
+      buildSolarSystem();
       enterView();
     } else {
       buildMol(curIdx[v]);
@@ -1397,7 +1246,7 @@ body.focus #menuWrap{display:none!important}
       enterView();
     }
     if(prev==='table' && !table){ goal.theta=0.6; goal.phi=1.2; }
-    if(prev==='physics' && !physics){ goal.theta=0.6; goal.phi=1.2; }
+    if(prev==='solar' && !solar){ goal.theta=0.6; goal.phi=1.2; }
     document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v));
     closeMenu(); closeUIMenu();
   }
@@ -1480,7 +1329,7 @@ body.focus #menuWrap{display:none!important}
   }
   function reset(){
     focused=null;
-    if(view !== 'physics') goal.target.set(0,0,0);
+    if(view !== 'solar') goal.target.set(0,0,0);
     goal.radius=defR;
     rings.forEach(r=>{ r.material.opacity=0.28; });
     card.classList.remove('on'); setPart(0); renderLadder(-1);
@@ -1496,10 +1345,14 @@ body.focus #menuWrap{display:none!important}
   ray.near=0.01;
   const pickables=()=>{
     if(view==='table') return tableCells;
-    if(view==='physics'){
-      if (PHYS.scene === 'gravity') return PHYS.bodies.map(b => b.mesh);
-      if (PHYS.scene === 'magnetism') return PHYS.magnets.map(m => m.group);
-      return [];
+    if(view==='solar'){
+      const items = [];
+      if (SOLAR.sun) items.push(SOLAR.sun);
+      SOLAR.planets.forEach(p => {
+        items.push(p.mesh);
+        p.moons.forEach(m => items.push(m.mesh));
+      });
+      return items;
     }
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
     return cloudMode ? nucleusParts : nucleusParts.concat(electrons);
@@ -1517,48 +1370,8 @@ body.focus #menuWrap{display:none!important}
     goal.target.z=0;
   }
 
-  // Screen ray → world point on plane perpendicular to camera through the object
-  function projectToDragPlane(e, objectPos){
-    const camDir = new V();
-    camera.getWorldDirection(camDir);
-    const plane = new THREE.Plane();
-    plane.setFromNormalAndCoplanarPoint(camDir, objectPos);
-    const ndc = new THREE.Vector2(
-      (e.clientX / innerWidth) * 2 - 1,
-      -(e.clientY / innerHeight) * 2 + 1
-    );
-    ray.setFromCamera(ndc, camera);
-    const point = new V();
-    if (ray.ray.intersectPlane(plane, point)) return point;
-    return null;
-  }
-
   canvas.addEventListener('pointerdown', e=>{
     closeMenu(); closeUIMenu();
-    mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
-
-    // Physics: check for object hit first
-    if (view === 'physics'){
-      ray.setFromCamera(mouse, camera);
-      const hits = ray.intersectObjects(pickables(), true);
-      if (hits.length){
-        const obj = hits[0].object;
-        const body = obj.userData.body || (obj.userData.magnet) || (obj.parent && obj.parent.userData.body) || (obj.parent && obj.parent.userData.magnet);
-        if (body){
-          PHYS.dragged = body;
-          PHYS.draggingObj = true;
-          PHYS.selected = body;
-          PHYS.dragHistory = [];
-          const target = body.mesh || body.group;
-          PHYS.dragHistory.push({ t: performance.now(), p: target.position.clone() });
-          try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
-          canvas.classList.add('drag');
-          updatePhysControls();
-          return;
-        }
-      }
-    }
-
     ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
     canvas.classList.add('drag');
@@ -1573,24 +1386,8 @@ body.focus #menuWrap{display:none!important}
       }
     }
   });
-
   canvas.addEventListener('pointermove', e=>{
     mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
-
-    // Physics drag
-    if (PHYS.draggingObj && PHYS.dragged){
-      const target = PHYS.dragged.mesh || PHYS.dragged.group;
-      const hit = projectToDragPlane(e, target.position);
-      if (hit){
-        target.position.copy(hit);
-        PHYS.dragHistory.push({ t: performance.now(), p: hit.clone() });
-        while (PHYS.dragHistory.length > 2 && performance.now() - PHYS.dragHistory[0].t > 320){
-          PHYS.dragHistory.shift();
-        }
-      }
-      return;
-    }
-
     if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(ptrs.size>=2){
       moved=99;
@@ -1607,29 +1404,7 @@ body.focus #menuWrap{display:none!important}
     else { goal.theta-=dx*0.006; goal.phi=clamp(goal.phi-dy*0.006,0.5,2.5); }
     lastX=e.clientX; lastY=e.clientY;
   });
-
   function endPtr(e, tap){
-    // Physics drag release
-    if (PHYS.draggingObj && PHYS.dragged){
-      const body = PHYS.dragged;
-      if (PHYS.dragHistory.length >= 2 && body.velocity){
-        const first = PHYS.dragHistory[0];
-        const last = PHYS.dragHistory[PHYS.dragHistory.length - 1];
-        const dt = (last.t - first.t) / 1000;
-        if (dt > 0.02){
-          const vel = last.p.clone().sub(first.p).divideScalar(dt);
-          vel.multiplyScalar(0.75);
-          if (vel.length() > 20) vel.setLength(20);
-          body.velocity.copy(vel);
-        }
-      }
-      PHYS.draggingObj = false;
-      PHYS.dragged = null;
-      PHYS.dragHistory = [];
-      canvas.classList.remove('drag');
-      return;
-    }
-
     ptrs.delete(e.pointerId);
     if(ptrs.size<2) pinch=null;
     if(ptrs.size===1){ const p=[...ptrs.values()][0]; lastX=p.x; lastY=p.y; }
@@ -1642,21 +1417,14 @@ body.focus #menuWrap{display:none!important}
     if(view==='table'){
       if(hit) handleTableTap(hit.object.userData.Z);
       else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
-    } else if(view==='physics'){
-      if (hit){
-        const body = hit.object.userData.body || hit.object.userData.magnet || (hit.object.parent && (hit.object.parent.userData.body || hit.object.parent.userData.magnet));
-        if (body){
-          PHYS.selected = body;
-          if (body.type && body.mass !== undefined){
-            showCard(body.type.charAt(0).toUpperCase() + body.type.slice(1) + ' #' + body.id, [
-              ['Mass', body.mass.toFixed(2) + ' kg'],
-              ['Radius', body.radius.toFixed(2) + ' m'],
-              ['Volume', computeVolume(body.type, body.radius).toFixed(2) + ' m³'],
-              ['Speed', body.velocity.length().toFixed(2) + ' m/s']
-            ], 'Drag to throw · adjust mass and radius below.');
-          }
-          updatePhysControls();
-        }
+    } else if(view==='solar'){
+      if (hit && hit.object.userData.solar){
+        focusSolar(hit.object);
+      } else {
+        focused = null;
+        goal.target.set(0, 0, 0);
+        goal.radius = defR;
+        card.classList.remove('on');
       }
     } else {
       hit ? focus(hit.object) : reset();
@@ -1701,14 +1469,14 @@ body.focus #menuWrap{display:none!important}
       }
     } else if(view==='mol' || view==='amino'){
       molRoot.rotation.y+=dt*speed*0.3;
-    } else if(view==='physics'){
-      updatePhysics(dt * speed);
+    } else if(view==='solar'){
+      updateSolar(dt);
     }
 
-    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='physics'?physRoot:molRoot;
+    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='solar'?solarRoot:molRoot;
     const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
 
-    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='physics') goal.theta+=dt*0.08;
+    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='solar') goal.theta+=dt*0.08;
     const k=1-Math.pow(0.001,dt);
     if(focused) focused.getWorldPosition(goal.target);
     cam.theta+=(goal.theta-cam.theta)*k; cam.phi+=(goal.phi-cam.phi)*k; cam.radius+=(goal.radius-cam.radius)*k; cam.target.lerp(goal.target,k);
@@ -1718,7 +1486,7 @@ body.focus #menuWrap{display:none!important}
     ray.setFromCamera(mouse,camera);
     const list=pickables();
     hovered = list.length ? ray.intersectObjects(list, true)[0] || null : null;
-    canvas.classList.toggle('hover', !!hovered && !dragging && !PHYS.draggingObj);
+    canvas.classList.toggle('hover', !!hovered && !dragging);
 
     if(view==='table'){
       const zt = clamp((defR/Math.max(cam.radius,0.001) - 1)/1.6, 0, 1);
@@ -1748,11 +1516,21 @@ body.focus #menuWrap{display:none!important}
         const eTarget = clamp((u.hover - 1) * 4 + (u.Z === selectedZ ? 0.45 : 0), 0, 0.8);
         u.body.emissiveIntensity += (eTarget - u.body.emissiveIntensity) * kScale;
       });
+    } else if(view==='solar'){
+      // Subtle hover glow on planets/moons
+      const hv = hovered ? hovered.object : null;
+      list.forEach(o=>{
+        const mat = o.material;
+        if (!mat || mat.emissiveIntensity === undefined) return;
+        const base = o.userData.solar && o.userData.solar.isSun ? 3.0 : 0.1;
+        const target = (hv === o) ? base + 0.4 : base;
+        mat.emissiveIntensity += (target - mat.emissiveIntensity) * 0.15;
+      });
     } else {
       list.forEach(o=>{
         if(!o.userData) return;
         const u=o.userData;
-        if (u.body || u.magnet) return; // physics objects handle their own scaling
+        if (u.solar) return;
         const want=((hovered&&hovered.object===o)||focused===o)?1.3:1;
         u.hover = (u.hover||1) + (want - (u.hover||1))*0.2;
         if(u.kind==='bond') o.scale.set(u.bx*u.hover,u.len,u.bx*u.hover);
@@ -1773,6 +1551,8 @@ body.focus #menuWrap{display:none!important}
           else card.classList.remove('on');
         } else card.classList.remove('on');
       }
+    } else if(view==='solar'){
+      // Info card is updated on click, not hover
     }
 
     renderer.render(scene,camera);
