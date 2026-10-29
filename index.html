@@ -139,7 +139,7 @@ body.focus #menuWrap{display:none!important}
     <button data-view="atom">Atom model</button>
     <button data-view="mol">Hydrocarbons</button>
     <button data-view="amino">Amino acids</button>
-    <button data-view="solar">Solar system</button>
+    <button data-view="solar">Milky Way</button>
     <button data-view="table">Periodic table</button>
   </div>
   <div id="uiMenu" class="glass" hidden>
@@ -178,21 +178,40 @@ body.focus #menuWrap{display:none!important}
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
     </div>
     <div class="sec" id="solarUI" hidden>
-      <div class="chips" id="solarSystems" role="group" aria-label="Destinations">
-        <button class="chip wide" data-sys="0" type="button" aria-pressed="true">Solar System</button>
-        <button class="chip wide" data-sys="1" type="button">Proxima</button>
-        <button class="chip wide" data-sys="2" type="button">Alpha Centauri</button>
-        <button class="chip wide" data-sys="3" type="button">Sirius</button>
-        <button class="chip wide" data-sys="4" type="button">Tau Ceti</button>
-        <button class="chip wide" data-sys="5" type="button">Trappist-1</button>
-        <button class="chip wide" data-sys="6" type="button">Betelgeuse</button>
-        <button class="chip wide" data-sys="7" type="button">Rigel</button>
-        <button class="chip wide" data-sys="8" type="button">White dwarf</button>
-        <button class="chip wide" data-sys="9" type="button">Neutron star</button>
-        <button class="chip wide" data-sys="10" type="button">Black hole</button>
-        <button class="chip wide" data-sys="-1" type="button">Overview</button>
+      <div class="chips" id="solarSystems" role="group" aria-label="Local systems">
+        <button class="chip wide" data-dest="local" type="button">Local Area</button>
+        <button class="chip wide" data-dest="sys:0" type="button" aria-pressed="true">Solar System</button>
+        <button class="chip wide" data-dest="sys:1" type="button">Proxima</button>
+        <button class="chip wide" data-dest="sys:2" type="button">Alpha Cen</button>
+        <button class="chip wide" data-dest="sys:3" type="button">Sirius</button>
+        <button class="chip wide" data-dest="sys:4" type="button">Tau Ceti</button>
+        <button class="chip wide" data-dest="sys:5" type="button">Trappist-1</button>
+        <button class="chip wide" data-dest="sys:6" type="button">Betelgeuse</button>
+        <button class="chip wide" data-dest="sys:7" type="button">Rigel</button>
+        <button class="chip wide" data-dest="sys:8" type="button">Epsilon Eri</button>
+        <button class="chip wide" data-dest="sys:9" type="button">51 Peg</button>
+        <button class="chip wide" data-dest="sys:10" type="button">61 Cygni</button>
+        <button class="chip wide" data-dest="sys:11" type="button">Vega</button>
+        <button class="chip wide" data-dest="sys:12" type="button">Arcturus</button>
+        <button class="chip wide" data-dest="sys:13" type="button">Antares</button>
+        <button class="chip wide" data-dest="sys:14" type="button">Polaris</button>
+        <button class="chip wide" data-dest="sys:15" type="button">Aldebaran</button>
+        <button class="chip wide" data-dest="sys:16" type="button">Capella</button>
+        <button class="chip wide" data-dest="sys:17" type="button">HD 10180</button>
+        <button class="chip wide" data-dest="sys:18" type="button">Kepler-90</button>
+        <button class="chip wide" data-dest="ex:0" type="button">Cygnus X-1</button>
+        <button class="chip wide" data-dest="ex:1" type="button">V616 Mon</button>
+        <button class="chip wide" data-dest="ex:2" type="button">Neutron star</button>
+        <button class="chip wide" data-dest="ex:3" type="button">Black hole</button>
+        <button class="chip wide" data-dest="sgr" type="button">Sagittarius A*</button>
+        <button class="chip wide" data-dest="neb:0" type="button">Orion Nebula</button>
+        <button class="chip wide" data-dest="neb:1" type="button">Crab Nebula</button>
+        <button class="chip wide" data-dest="neb:2" type="button">Eagle Nebula</button>
+        <button class="chip wide" data-dest="neb:3" type="button">Helix Nebula</button>
+        <button class="chip wide" data-dest="neb:4" type="button">Carina Nebula</button>
+        <button class="chip wide" data-dest="overview" type="button">Milky Way</button>
       </div>
-      <div class="chips" id="solarTools" role="group" aria-label="Solar system controls">
+      <div class="chips" id="solarTools" role="group" aria-label="Milky Way controls">
         <button class="chip wide" id="solarOrbits" type="button" aria-pressed="true">Orbits</button>
         <button class="chip wide" id="solarMoons" type="button" aria-pressed="true">Moons</button>
         <button class="chip wide" id="solarFabric" type="button" aria-pressed="true">Spacetime</button>
@@ -225,19 +244,15 @@ body.focus #menuWrap{display:none!important}
   const sup = s => String(s).replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 
+  // ============ UI ============
   const UI = {header:true, ladder:true, panel:true, card:true, focus:false};
   const UI_KEY='atomlab.ui.v1';
   function loadUI(){
-    try{
-      const s=JSON.parse(localStorage.getItem(UI_KEY)||'null');
-      if(s&&typeof s==='object'){
-        ['header','ladder','panel','card'].forEach(k=>{ if(typeof s[k]==='boolean') UI[k]=s[k]; });
-      }
+    try{ const s=JSON.parse(localStorage.getItem(UI_KEY)||'null');
+      if(s&&typeof s==='object'){ ['header','ladder','panel','card'].forEach(k=>{ if(typeof s[k]==='boolean') UI[k]=s[k]; }); }
     }catch(_){}
   }
-  function saveUI(){
-    try{ localStorage.setItem(UI_KEY, JSON.stringify({header:UI.header,ladder:UI.ladder,panel:UI.panel,card:UI.card})); }catch(_){}
-  }
+  function saveUI(){ try{ localStorage.setItem(UI_KEY, JSON.stringify({header:UI.header,ladder:UI.ladder,panel:UI.panel,card:UI.card})); }catch(_){} }
   function applyUI(){
     const b=document.body;
     b.classList.toggle('hide-header', !UI.header);
@@ -255,7 +270,7 @@ body.focus #menuWrap{display:none!important}
   }
   loadUI();
 
-  // ======================= DATA =======================
+  // ============ ELEMENT DATA ============
   const ELS = ('H Hydrogen 1|He Helium 4|Li Lithium 7|Be Beryllium 9|B Boron 11|C Carbon 12|N Nitrogen 14|O Oxygen 16|F Fluorine 19|Ne Neon 20|'+
     'Na Sodium 23|Mg Magnesium 24|Al Aluminium 27|Si Silicon 28|P Phosphorus 31|S Sulfur 32|Cl Chlorine 35|Ar Argon 40|K Potassium 39|Ca Calcium 40|'+
     'Sc Scandium 45|Ti Titanium 48|V Vanadium 51|Cr Chromium 52|Mn Manganese 55|Fe Iron 56|Co Cobalt 59|Ni Nickel 58|Cu Copper 63|Zn Zinc 64|'+
@@ -268,61 +283,35 @@ body.focus #menuWrap{display:none!important}
     'Pa Protactinium 231|U Uranium 238|Np Neptunium 237|Pu Plutonium 244|Am Americium 243|Cm Curium 247|Bk Berkelium 247|Cf Californium 251|Es Einsteinium 252|Fm Fermium 257|'+
     'Md Mendelevium 258|No Nobelium 259|Lr Lawrencium 266|Rf Rutherfordium 267|Db Dubnium 268|Sg Seaborgium 269|Bh Bohrium 270|Hs Hassium 269|Mt Meitnerium 278|Ds Darmstadtium 281|'+
     'Rg Roentgenium 282|Cn Copernicium 285|Nh Nihonium 286|Fl Flerovium 289|Mc Moscovium 290|Lv Livermorium 293|Ts Tennessine 294|Og Oganesson 294').split('|').map(s=>{ const a=s.split(' '); return [a[0],a[1],+a[2]]; });
-  const ISOTOPES = {
-    1:[1,2,3], 2:[3,4], 3:[6,7], 4:[9,10], 5:[10,11], 6:[12,13,14], 7:[14,15],
-    8:[16,17,18], 9:[19], 10:[20,21,22], 11:[22,23,24], 12:[24,25,26],
-    13:[27], 14:[28,29,30], 15:[31,32,33], 16:[32,33,34,36], 17:[35,37], 18:[36,38,40],
-    19:[39,40,41], 20:[40,42,43,44,46,48], 26:[54,56,57,58], 27:[59], 28:[58,60,61,62,64],
-    29:[63,65], 30:[64,66,67,68,70], 35:[79,81], 47:[107,109], 50:[112,114,115,116,117,118,119,120,122,124],
-    53:[127,131], 54:[129,131,132,134,136], 55:[133], 74:[182,183,184,186], 78:[194,195,196,198],
-    79:[197], 80:[196,198,199,200,201,202,204], 82:[206,207,208], 86:[222], 88:[226],
-    90:[232], 92:[234,235,238], 94:[239,240,244]
-  };
-  function isotopesOf(Z){
-    if(ISOTOPES[Z]) return ISOTOPES[Z];
-    const A = ELS[Z-1][2];
-    return [A].filter(x => x >= Z);
-  }
-  const ORDER = [[1,0],[2,0],[2,1],[3,0],[3,1],[4,0],[3,2],[4,1],[5,0],[4,2],[5,1],[6,0],[4,3],[5,2],[6,1],[7,0],[5,3],[6,2],[7,1]];
-  const EXC = {24:[2,8,13,1],29:[2,8,18,1],41:[2,8,18,12,1],42:[2,8,18,13,1],44:[2,8,18,15,1],45:[2,8,18,16,1],46:[2,8,18,18],47:[2,8,18,18,1],
-    57:[2,8,18,18,9,2],58:[2,8,18,19,9,2],64:[2,8,18,25,9,2],78:[2,8,18,32,17,1],79:[2,8,18,32,18,1],
-    89:[2,8,18,32,18,9,2],90:[2,8,18,32,18,10,2],91:[2,8,18,32,20,9,2],92:[2,8,18,32,21,9,2],93:[2,8,18,32,22,9,2],96:[2,8,18,32,25,9,2],103:[2,8,18,32,32,8,3]};
-  function shellsFor(Z){
-    if(EXC[Z]) return EXC[Z];
-    const s=[0,0,0,0,0,0,0]; let left=Z;
-    for(const o of ORDER){ const k=Math.min(left, 2*(2*o[1]+1)); s[o[0]-1]+=k; left-=k; if(!left) break; }
-    return s.filter(x=>x>0);
-  }
-  const SHELL_R = [2.6,4.0,5.4,6.8,8.2,9.6,11.0];
-  const TILT = [[0.25,0.1],[1.0,0.5],[-0.6,0.9],[0.5,-0.4],[-0.9,0.3],[0.3,-0.7],[-0.75,0.55]];
-  const SCH = ['#4cc9f0','#7b9cff','#c18bff','#ff8fd1','#ffb86b','#7ef0c0','#ffe066'];
-  const SC = SCH.map(c=>parseInt(c.slice(1),16));
-  const ANG = {sp3:109.5, sp2:120, sp:180};
-  const EN = {C:'Carbon',H:'Hydrogen',N:'Nitrogen',O:'Oxygen',S:'Sulfur'};
-  const COL = {C:0xff9f1c,H:0x22d3ee,N:0x4361ee,O:0xff3b3b,S:0xffe14d};
-  const RB = {C:.38,H:.24,N:.36,O:.34,S:.45}, RF = {C:.85,H:.6,N:.8,O:.75,S:1};
+  const ISOTOPES = {1:[1,2,3],2:[3,4],3:[6,7],4:[9,10],5:[10,11],6:[12,13,14],7:[14,15],8:[16,17,18],9:[19],10:[20,21,22],11:[22,23,24],12:[24,25,26],13:[27],14:[28,29,30],15:[31,32,33],16:[32,33,34,36],17:[35,37],18:[36,38,40],19:[39,40,41],20:[40,42,43,44,46,48],26:[54,56,57,58],27:[59],28:[58,60,61,62,64],29:[63,65],30:[64,66,67,68,70],35:[79,81],47:[107,109],50:[112,114,115,116,117,118,119,120,122,124],53:[127,131],54:[129,131,132,134,136],55:[133],74:[182,183,184,186],78:[194,195,196,198],79:[197],80:[196,198,199,200,201,202,204],82:[206,207,208],86:[222],88:[226],90:[232],92:[234,235,238],94:[239,240,244]};
+  function isotopesOf(Z){ if(ISOTOPES[Z]) return ISOTOPES[Z]; const A=ELS[Z-1][2]; return [A].filter(x=>x>=Z); }
+  const ORDER=[[1,0],[2,0],[2,1],[3,0],[3,1],[4,0],[3,2],[4,1],[5,0],[4,2],[5,1],[6,0],[4,3],[5,2],[6,1],[7,0],[5,3],[6,2],[7,1]];
+  const EXC={24:[2,8,13,1],29:[2,8,18,1],41:[2,8,18,12,1],42:[2,8,18,13,1],44:[2,8,18,15,1],45:[2,8,18,16,1],46:[2,8,18,18],47:[2,8,18,18,1],57:[2,8,18,18,9,2],58:[2,8,18,19,9,2],64:[2,8,18,25,9,2],78:[2,8,18,32,17,1],79:[2,8,18,32,18,1],89:[2,8,18,32,18,9,2],90:[2,8,18,32,18,10,2],91:[2,8,18,32,20,9,2],92:[2,8,18,32,21,9,2],93:[2,8,18,32,22,9,2],96:[2,8,18,32,25,9,2],103:[2,8,18,32,32,8,3]};
+  function shellsFor(Z){ if(EXC[Z]) return EXC[Z]; const s=[0,0,0,0,0,0,0]; let left=Z; for(const o of ORDER){ const k=Math.min(left,2*(2*o[1]+1)); s[o[0]-1]+=k; left-=k; if(!left) break; } return s.filter(x=>x>0); }
+  const SHELL_R=[2.6,4.0,5.4,6.8,8.2,9.6,11.0];
+  const TILT=[[0.25,0.1],[1.0,0.5],[-0.6,0.9],[0.5,-0.4],[-0.9,0.3],[0.3,-0.7],[-0.75,0.55]];
+  const SCH=['#4cc9f0','#7b9cff','#c18bff','#ff8fd1','#ffb86b','#7ef0c0','#ffe066'];
+  const SC=SCH.map(c=>parseInt(c.slice(1),16));
+  const ANG={sp3:109.5,sp2:120,sp:180};
+  const EN={C:'Carbon',H:'Hydrogen',N:'Nitrogen',O:'Oxygen',S:'Sulfur'};
+  const COL={C:0xff9f1c,H:0x22d3ee,N:0x4361ee,O:0xff3b3b,S:0xffe14d};
+  const RB={C:.38,H:.24,N:.36,O:.34,S:.45}, RF={C:.85,H:.6,N:.8,O:.75,S:1};
   const HEX = c => '#'+c.toString(16).padStart(6,'0');
-  const HYDRO = [['Methane',[],'Acyclic'],['Ethane',[1],'Acyclic'],['Propane',[1,1],'Acyclic'],['Butane',[1,1,1],'Acyclic'],['Pentane',[1,1,1,1],'Acyclic'],
-    ['Hexane',[1,1,1,1,1],'Acyclic'],['Ethene',[2],'Acyclic'],['Propene',[2,1],'Acyclic'],['1-Butene',[2,1,1],'Acyclic'],['Ethyne',[3],'Acyclic'],['Propyne',[3,1],'Acyclic'],
-    ['Cyclopropane','ring3','Cyclic'],['Cyclobutane','ring4','Cyclic'],['Cyclopentane','ring5','Cyclic'],['Cyclohexane','ring6c','Cyclic'],['Benzene','ring6a','Cyclic']];
-  const AMINO = [['Glycine','NCC(=O)O','Nonpolar'],['Alanine','NC(C)C(=O)O','Nonpolar'],['Valine','NC(C(C)C)C(=O)O','Nonpolar'],['Leucine','NC(CC(C)C)C(=O)O','Nonpolar'],
-    ['Isoleucine','NC(C(C)CC)C(=O)O','Nonpolar'],['Proline','N1CCCC1C(=O)O','Nonpolar'],['Methionine','NC(CCSC)C(=O)O','Nonpolar'],['Phenylalanine','NC(Cc1=cc=cc=c1)C(=O)O','Nonpolar'],
-    ['Serine','NC(CO)C(=O)O','Polar'],['Threonine','NC(C(C)O)C(=O)O','Polar'],['Cysteine','NC(CS)C(=O)O','Polar'],['Tyrosine','NC(Cc1=cc=c(O)c=c1)C(=O)O','Polar'],
-    ['Asparagine','NC(CC(N)=O)C(=O)O','Polar'],['Glutamine','NC(CCC(N)=O)C(=O)O','Polar'],
-    ['Aspartic acid','NC(CC(=O)O)C(=O)O','Charged'],['Glutamic acid','NC(CCC(=O)O)C(=O)O','Charged'],['Lysine','NC(CCCCN)C(=O)O','Charged'],['Arginine','NC(CCCNC(=N)N)C(=O)O','Charged']];
-  const LIST = {mol:HYDRO.map(h=>({name:h[0],def:h[1],group:h[2]})), amino:AMINO.map(a=>({name:a[0],smi:a[1],group:a[2]}))};
-  const BI = {CC1:[1.54,347],CC2:[1.34,614],CC3:[1.2,839],CCa:[1.4,518],CH1:[1.09,413],CN1:[1.47,305],CN2:[1.29,615],CO1:[1.43,358],CO2:[1.23,745],CS1:[1.82,259],HN1:[1.01,391],HO1:[.96,463],HS1:[1.34,339]};
-  const bondInfo = (a,b,o,ar) => BI[[a,b].sort().join('')+(ar?'a':o)] || [1.5,350];
+  const HYDRO=[['Methane',[],'Acyclic'],['Ethane',[1],'Acyclic'],['Propane',[1,1],'Acyclic'],['Butane',[1,1,1],'Acyclic'],['Pentane',[1,1,1,1],'Acyclic'],['Hexane',[1,1,1,1,1],'Acyclic'],['Ethene',[2],'Acyclic'],['Propene',[2,1],'Acyclic'],['1-Butene',[2,1,1],'Acyclic'],['Ethyne',[3],'Acyclic'],['Propyne',[3,1],'Acyclic'],['Cyclopropane','ring3','Cyclic'],['Cyclobutane','ring4','Cyclic'],['Cyclopentane','ring5','Cyclic'],['Cyclohexane','ring6c','Cyclic'],['Benzene','ring6a','Cyclic']];
+  const AMINO=[['Glycine','NCC(=O)O','Nonpolar'],['Alanine','NC(C)C(=O)O','Nonpolar'],['Valine','NC(C(C)C)C(=O)O','Nonpolar'],['Leucine','NC(CC(C)C)C(=O)O','Nonpolar'],['Isoleucine','NC(C(C)CC)C(=O)O','Nonpolar'],['Proline','N1CCCC1C(=O)O','Nonpolar'],['Methionine','NC(CCSC)C(=O)O','Nonpolar'],['Phenylalanine','NC(Cc1=cc=cc=c1)C(=O)O','Nonpolar'],['Serine','NC(CO)C(=O)O','Polar'],['Threonine','NC(C(C)O)C(=O)O','Polar'],['Cysteine','NC(CS)C(=O)O','Polar'],['Tyrosine','NC(Cc1=cc=c(O)c=c1)C(=O)O','Polar'],['Asparagine','NC(CC(N)=O)C(=O)O','Polar'],['Glutamine','NC(CCC(N)=O)C(=O)O','Polar'],['Aspartic acid','NC(CC(=O)O)C(=O)O','Charged'],['Glutamic acid','NC(CCC(=O)O)C(=O)O','Charged'],['Lysine','NC(CCCCN)C(=O)O','Charged'],['Arginine','NC(CCCNC(=N)N)C(=O)O','Charged']];
+  const LIST={mol:HYDRO.map(h=>({name:h[0],def:h[1],group:h[2]})),amino:AMINO.map(a=>({name:a[0],smi:a[1],group:a[2]}))};
+  const BI={CC1:[1.54,347],CC2:[1.34,614],CC3:[1.2,839],CCa:[1.4,518],CH1:[1.09,413],CN1:[1.47,305],CN2:[1.29,615],CO1:[1.43,358],CO2:[1.23,745],CS1:[1.82,259],HN1:[1.01,391],HO1:[.96,463],HS1:[1.34,339]};
+  const bondInfo=(a,b,o,ar) => BI[[a,b].sort().join('')+(ar?'a':o)] || [1.5,350];
 
-  // ======================= SCENE =======================
+  // ============ SCENE ============
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 800);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 8000);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x35506a, 0.9));
   const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4,6,5); scene.add(key);
   const sp = [];
-  for(let i=0;i<2600;i++){ const r=280+Math.random()*400, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
+  for(let i=0;i<3200;i++){ const r=600+Math.random()*1500, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
@@ -340,29 +329,25 @@ body.focus #menuWrap{display:none!important}
   let view='atom', nucleusParts=[], electrons=[], rings=[], clouds=[], cloudMode=false, born=0, defR=14, cur=null, nucR=0.3;
   let molAtoms=[], molBonds=[], spaceFill=false, openGroup=null, curIdx={mol:0,amino:0};
 
-  // ======================= ATOM =======================
+  // ============ ATOM ============
   function build(i, A_override){
     clearRoot(atomRoot);
     nucleusParts=[]; electrons=[]; rings=[]; clouds=[];
     const el=ELS[i], Z=i+1;
-    const isoList = isotopesOf(Z);
-    const A = (A_override && isoList.includes(A_override)) ? A_override : el[2];
-    const N = A - Z, total = A, sh = shellsFor(Z);
+    const isoList=isotopesOf(Z);
+    const A=(A_override && isoList.includes(A_override))?A_override:el[2];
+    const N=A-Z, total=A, sh=shellsFor(Z);
     const nucleus=new THREE.Group(); atomRoot.add(nucleus);
-    const geo = total>150 ? partGeoLo : partGeo;
+    const geo=total>150?partGeoLo:partGeo;
     const ga=Math.PI*(3-Math.sqrt(5)), D=0.4, P=[];
     for(let k=0;k<total;k++){
       const y=1-2*(k+0.5)/total, rr=Math.sqrt(1-y*y), th=k*ga, rad=0.45*Math.cbrt(total)*Math.cbrt((k+0.5)/total);
       P.push(new V(Math.cos(th)*rr*rad, y*rad, Math.sin(th)*rr*rad));
     }
-    const ITER = total>140 ? 200 : 400;
+    const ITER=total>140?200:400;
     for(let it=0;it<ITER;it++){
-      for(let a=0;a<total;a++){
-        P[a].multiplyScalar(0.985);
-        for(let b=a+1;b<total;b++){
-          const d=P[a].distanceTo(P[b]);
-          if(d<D && d>1e-6){ const push=P[a].clone().sub(P[b]).multiplyScalar((D-d)/d*0.5); P[a].add(push); P[b].sub(push); }
-        }
+      for(let a=0;a<total;a++){ P[a].multiplyScalar(0.985);
+        for(let b=a+1;b<total;b++){ const d=P[a].distanceTo(P[b]); if(d<D && d>1e-6){ const push=P[a].clone().sub(P[b]).multiplyScalar((D-d)/d*0.5); P[a].add(push); P[b].sub(push); } }
       }
     }
     const c=P.reduce((s,v)=>s.add(v), new V()).divideScalar(total);
@@ -370,52 +355,35 @@ body.focus #menuWrap{display:none!important}
     nucR=Math.max(...P.map(v=>v.length()))+0.2;
     if(nucR>2.2){ const ns=2.2/nucR; nucleus.scale.setScalar(ns); nucR=2.2; }
     const types=[...Array(total).keys()].map(k=>k<Z?'p':'n').sort(()=>Math.random()-0.5);
-    P.forEach((pos,k)=>{
-      const m=new THREE.Mesh(geo, types[k]==='p'?mP:mN);
-      m.position.copy(pos); m.userData={kind:types[k], base0:pos.clone(), phase:k*1.3, hover:1};
-      nucleus.add(m); nucleusParts.push(m);
-    });
+    P.forEach((pos,k)=>{ const m=new THREE.Mesh(geo, types[k]==='p'?mP:mN); m.position.copy(pos); m.userData={kind:types[k],base0:pos.clone(),phase:k*1.3,hover:1}; nucleus.add(m); nucleusParts.push(m); });
     sh.forEach((count,s)=>{
       const g=new THREE.Group(); g.rotation.set(TILT[s][0],0,TILT[s][1]); atomRoot.add(g);
       const r=SHELL_R[s], pts=[];
       for(let k=0;k<=96;k++){ const a=k/96*Math.PI*2; pts.push(new V(Math.cos(a)*r,0,Math.sin(a)*r)); }
-      const ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:SC[s], transparent:true, opacity:.28}));
+      const ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:SC[s],transparent:true,opacity:.28}));
       g.add(ring); rings.push(ring);
-      for(let k=0;k<count;k++){
-        const e=new THREE.Mesh(eGeo, eMats[s]);
-        e.userData={kind:'e', shell:s+1, r, angle:k/count*Math.PI*2, speed:1.5/Math.pow(s+1,0.9), count, cap:2*(s+1)*(s+1), total:sh.length, valence:s===sh.length-1, hover:1};
-        g.add(e); electrons.push(e);
-      }
+      for(let k=0;k<count;k++){ const e=new THREE.Mesh(eGeo, eMats[s]); e.userData={kind:'e',shell:s+1,r,angle:k/count*Math.PI*2,speed:1.5/Math.pow(s+1,0.9),count,cap:2*(s+1)*(s+1),total:sh.length,valence:s===sh.length-1,hover:1}; g.add(e); electrons.push(e); }
       const n=count*320, arr=new Float32Array(n*3);
-      for(let k=0;k<n;k++){
-        const u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u), rr=r+(Math.random()+Math.random()+Math.random()-1.5)*0.45;
-        arr.set([rr*q*Math.cos(a), rr*u, rr*q*Math.sin(a)], k*3);
-      }
+      for(let k=0;k<n;k++){ const u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u), rr=r+(Math.random()+Math.random()+Math.random()-1.5)*0.45; arr.set([rr*q*Math.cos(a), rr*u, rr*q*Math.sin(a)], k*3); }
       const geo2=new THREE.BufferGeometry(); geo2.setAttribute('position', new THREE.BufferAttribute(arr,3));
-      const cl=new THREE.Points(geo2, new THREE.PointsMaterial({color:SC[s], size:2.2, sizeAttenuation:false, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending}));
+      const cl=new THREE.Points(geo2, new THREE.PointsMaterial({color:SC[s],size:2.2,sizeAttenuation:false,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
       atomRoot.add(cl); clouds.push(cl);
     });
     cur={Z,N,sh,name:el[1],A};
     $('np').textContent=Z; $('nn').textContent=N; $('ne').textContent=Z;
     chips.forEach((b,k)=>b.setAttribute('aria-pressed', k===i));
     chips[i].scrollIntoView({block:'nearest', inline:'center'});
-    renderIsoChips(Z, A, el[0]);
+    renderIsoChips(Z,A,el[0]);
     defR=SHELL_R[sh.length-1]*2.4+3;
     renderParts(sh); renderLadder(-1); applyMode();
-    if(view==='atom'){
-      $('title').textContent=el[1];
-      $('sub').textContent=el[0]+'-'+A+' · atomic number '+Z+' · '+N+' neutron'+(N===1?'':'s')+' · shells '+sh.join(', ');
-      enterView();
-    }
+    if(view==='atom'){ $('title').textContent=el[1]; $('sub').textContent=el[0]+'-'+A+' · atomic number '+Z+' · '+N+' neutron'+(N===1?'':'s')+' · shells '+sh.join(', '); enterView(); }
   }
-  function renderIsoChips(Z, A, sym){
-    const box = $('isoChips'); box.innerHTML='';
+  function renderIsoChips(Z,A,sym){
+    const box=$('isoChips'); box.innerHTML='';
     isotopesOf(Z).forEach(Ax=>{
-      const b = document.createElement('button');
-      b.className='chip wide'; b.type='button';
-      b.innerHTML = sup(Ax)+'<span style="opacity:.75;margin-left:2px">'+sym+'</span>';
-      b.setAttribute('aria-pressed', Ax===A);
-      b.title = sym+'-'+Ax;
+      const b=document.createElement('button'); b.className='chip wide'; b.type='button';
+      b.innerHTML=sup(Ax)+'<span style="opacity:.75;margin-left:2px">'+sym+'</span>';
+      b.setAttribute('aria-pressed', Ax===A); b.title=sym+'-'+Ax;
       b.addEventListener('click', ()=>build(Z-1, Ax));
       box.appendChild(b);
     });
@@ -427,8 +395,7 @@ body.focus #menuWrap{display:none!important}
     if(!cur) return;
     const H=200; let h='<svg viewBox="0 0 112 '+H+'" width="112" height="'+H+'" role="img" aria-label="Energy level diagram">';
     h+='<line x1="48" x2="108" y1="14" y2="14" stroke="currentColor" stroke-dasharray="2 3" opacity=".4"/><text x="4" y="17" font-size="9" fill="currentColor" opacity=".6">free</text>';
-    cur.sh.forEach((c,s)=>{
-      const n=s+1, y=24+(H-36)/n, on=active===s;
+    cur.sh.forEach((c,s)=>{ const n=s+1, y=24+(H-36)/n, on=active===s;
       h+='<g data-s="'+s+'" style="cursor:pointer"><rect x="0" y="'+(y-8)+'" width="112" height="16" fill="transparent"/>'+
         '<line x1="48" x2="108" y1="'+y+'" y2="'+y+'" stroke="'+SCH[s]+'" stroke-width="'+(on?5:2.5)+'" stroke-linecap="round"/>'+
         '<text x="4" y="'+(y+4)+'" font-size="10" fill="currentColor">n='+n+' · '+c+'</text></g>';
@@ -454,44 +421,32 @@ body.focus #menuWrap{display:none!important}
       b.addEventListener('click', d[1]); box.appendChild(b); partChips.push(b);
     });
   }
-  const setPart = i => partChips.forEach((c,k)=>c.setAttribute('aria-pressed', k===i));
+  const setPart=i=>partChips.forEach((c,k)=>c.setAttribute('aria-pressed', k===i));
 
-  // ======================= HYDROCARBONS =======================
+  // ============ MOLECULES ============
   function molData(def){
     const A=[], L=[];
     if(typeof def==='string'){
       const rn={ring3:3,ring4:4,ring5:5}[def];
-      if(rn){
-        const R=1.54/(2*Math.sin(Math.PI/rn));
-        for(let k=0;k<rn;k++){
-          const f=k*2*Math.PI/rn, c=Math.cos(f), s=Math.sin(f), p0=new V(c*R,s*R,0);
+      if(rn){ const R=1.54/(2*Math.sin(Math.PI/rn));
+        for(let k=0;k<rn;k++){ const f=k*2*Math.PI/rn, c=Math.cos(f), s=Math.sin(f), p0=new V(c*R,s*R,0);
           A.push({el:'C',pos:p0,hyb:'sp3'});
           [1,-1].forEach(z=>A.push({el:'H',pos:p0.clone().add(new V(c*0.58,s*0.58,z*0.82).normalize().multiplyScalar(1.09))}));
-          L.push([3*k,3*k+1,1],[3*k,3*k+2,1],[3*k,3*((k+1)%rn),1]);
-        }
+          L.push([3*k,3*k+1,1],[3*k,3*k+2,1],[3*k,3*((k+1)%rn),1]); }
         return {A,L};
       }
-      for(let k=0;k<6;k++){
-        const f=k*Math.PI/3, c=Math.cos(f), s=Math.sin(f), up=k%2?-1:1;
-        if(def==='ring6a'){
-          A.push({el:'C',pos:new V(c*1.4,s*1.4,0),hyb:'sp2'}, {el:'H',pos:new V(c*2.48,s*2.48,0)});
-          L.push([2*k,2*k+1,1],[2*k,2*((k+1)%6),k%2?1:2,true]);
-        } else {
-          const p0=new V(c*1.45,s*1.45,up*0.25);
-          A.push({el:'C',pos:p0,hyb:'sp3'}, {el:'H',pos:p0.clone().add(new V(0,0,1.09*up))},
-            {el:'H',pos:p0.clone().add(new V(c*0.94,s*0.94,-up*0.33).normalize().multiplyScalar(1.09))});
-          L.push([3*k,3*k+1,1],[3*k,3*k+2,1],[3*k,3*((k+1)%6),1]);
-        }
-      }
+      for(let k=0;k<6;k++){ const f=k*Math.PI/3, c=Math.cos(f), s=Math.sin(f), up=k%2?-1:1;
+        if(def==='ring6a'){ A.push({el:'C',pos:new V(c*1.4,s*1.4,0),hyb:'sp2'}, {el:'H',pos:new V(c*2.48,s*2.48,0)}); L.push([2*k,2*k+1,1],[2*k,2*((k+1)%6),k%2?1:2,true]); }
+        else { const p0=new V(c*1.45,s*1.45,up*0.25);
+          A.push({el:'C',pos:p0,hyb:'sp3'}, {el:'H',pos:p0.clone().add(new V(0,0,1.09*up))}, {el:'H',pos:p0.clone().add(new V(c*0.94,s*0.94,-up*0.33).normalize().multiplyScalar(1.09))});
+          L.push([3*k,3*k+1,1],[3*k,3*k+2,1],[3*k,3*((k+1)%6),1]); } }
       return {A,L};
     }
     const n=def.length+1, LEN={1:1.54,2:1.34,3:1.2}, P=[new V()];
     let d=new V(1,0,0), sg=1;
     const hybAt=i=>{ const o=[def[i-1],def[i]].filter(x=>x); return o.includes(3)?'sp':o.includes(2)?'sp2':'sp3'; };
-    for(let i=0;i<def.length;i++){
-      if(i>0){ const h=hybAt(i); if(h!=='sp'){ d=d.clone().applyAxisAngle(Zax, sg*(180-ANG[h])*Math.PI/180); sg=-sg; } }
-      P.push(P[i].clone().add(d.clone().multiplyScalar(LEN[def[i]])));
-    }
+    for(let i=0;i<def.length;i++){ if(i>0){ const h=hybAt(i); if(h!=='sp'){ d=d.clone().applyAxisAngle(Zax, sg*(180-ANG[h])*Math.PI/180); sg=-sg; } }
+      P.push(P[i].clone().add(d.clone().multiplyScalar(LEN[def[i]]))); }
     P.forEach((p,i)=>A.push({el:'C',pos:p,hyb:hybAt(i)}));
     def.forEach((o,i)=>L.push([i,i+1,o]));
     P.forEach((p,i)=>{
@@ -499,88 +454,52 @@ body.focus #menuWrap{display:none!important}
       const h=A[i].hyb, dirs=[];
       if(!nb.length){ [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].forEach(v=>dirs.push(new V(v[0],v[1],v[2]).normalize())); }
       else if(h==='sp'){ if(nb.length===1) dirs.push(nb[0].clone().negate()); }
-      else if(h==='sp2'){
-        if(nb.length===1) [1,-1].forEach(s=>dirs.push(nb[0].clone().applyAxisAngle(Zax, s*2*Math.PI/3)));
-        else dirs.push(nb[0].clone().add(nb[1]).negate().normalize());
-      } else if(nb.length===1){
-        const e2=new V().crossVectors(nb[0],Zax).normalize();
-        for(let k=0;k<3;k++){ const f=k*2*Math.PI/3; dirs.push(nb[0].clone().multiplyScalar(-0.3338).add(Zax.clone().multiplyScalar(0.9426*Math.cos(f))).add(e2.clone().multiplyScalar(0.9426*Math.sin(f)))); }
-      } else {
-        const u=nb[0].clone().add(nb[1]).negate().normalize();
-        [1,-1].forEach(s=>dirs.push(u.clone().multiplyScalar(0.5774).add(Zax.clone().multiplyScalar(s*0.8165))));
-      }
+      else if(h==='sp2'){ if(nb.length===1) [1,-1].forEach(s=>dirs.push(nb[0].clone().applyAxisAngle(Zax, s*2*Math.PI/3))); else dirs.push(nb[0].clone().add(nb[1]).negate().normalize()); }
+      else if(nb.length===1){ const e2=new V().crossVectors(nb[0],Zax).normalize(); for(let k=0;k<3;k++){ const f=k*2*Math.PI/3; dirs.push(nb[0].clone().multiplyScalar(-0.3338).add(Zax.clone().multiplyScalar(0.9426*Math.cos(f))).add(e2.clone().multiplyScalar(0.9426*Math.sin(f)))); } }
+      else { const u=nb[0].clone().add(nb[1]).negate().normalize(); [1,-1].forEach(s=>dirs.push(u.clone().multiplyScalar(0.5774).add(Zax.clone().multiplyScalar(s*0.8165)))); }
       dirs.forEach(dv=>{ A.push({el:'H',pos:p.clone().add(dv.multiplyScalar(1.09))}); L.push([i,A.length-1,1]); });
     });
     return {A,L};
   }
-
-  // ======================= AMINO ACIDS =======================
   function aminoData(smi, seed){
     const at=[], bd=[], VAL={C:4,N:3,O:2,S:2}; let prev=-1, ord=1; const stack=[], ring={};
     for(const ch of smi){
-      if(ch==='(') stack.push(prev);
-      else if(ch===')') prev=stack.pop();
-      else if(ch==='=') ord=2;
+      if(ch==='(') stack.push(prev); else if(ch===')') prev=stack.pop(); else if(ch==='=') ord=2;
       else if(/\d/.test(ch)){ if(ring[ch]!==undefined){ bd.push([ring[ch],prev,ord]); delete ring[ch]; ord=1; } else ring[ch]=prev; }
       else { const el=ch.toUpperCase(); at.push({el,ar:ch!==el}); const n=at.length-1; if(prev>=0) bd.push([prev,n,ord]); prev=n; ord=1; }
     }
     bd.forEach(b=>{ b[3]=at[b[0]].ar && at[b[1]].ar; });
     const heavy=at.length;
-    for(let i=0;i<heavy;i++){
-      const s=bd.filter(b=>b[0]===i||b[1]===i).reduce((t,b)=>t+b[2],0);
-      for(let k=0;k<VAL[at[i].el]-s;k++){ at.push({el:'H'}); bd.push([i,at.length-1,1]); }
-    }
+    for(let i=0;i<heavy;i++){ const s=bd.filter(b=>b[0]===i||b[1]===i).reduce((t,b)=>t+b[2],0); for(let k=0;k<VAL[at[i].el]-s;k++){ at.push({el:'H'}); bd.push([i,at.length-1,1]); } }
     const n=at.length, nb=at.map(()=>[]), bl={}, cons=[], skip={};
     bd.forEach(b=>{ nb[b[0]].push(b[1]); nb[b[1]].push(b[0]); const l=bondInfo(at[b[0]].el,at[b[1]].el,b[2],b[3])[0]; bl[b[0]+'_'+b[1]]=bl[b[1]+'_'+b[0]]=l; cons.push([b[0],b[1],l]); skip[b[0]*128+b[1]]=skip[b[1]*128+b[0]]=1; });
-    for(let c=0;c<heavy;c++){
-      const orders=bd.filter(b=>b[0]===c||b[1]===c).map(b=>b[2]);
-      at[c].hyb = orders.includes(3)?'sp':orders.includes(2)?'sp2':'sp3';
-      for(let p=0;p<nb[c].length;p++) for(let q=p+1;q<nb[c].length;q++){
-        const x=nb[c][p], y=nb[c][q], l1=bl[c+'_'+x], l2=bl[c+'_'+y], a=ANG[at[c].hyb]*Math.PI/180;
-        cons.push([x,y,Math.sqrt(l1*l1+l2*l2-2*l1*l2*Math.cos(a))]); skip[x*128+y]=skip[y*128+x]=1;
-      }
-    }
+    for(let c=0;c<heavy;c++){ const orders=bd.filter(b=>b[0]===c||b[1]===c).map(b=>b[2]); at[c].hyb = orders.includes(3)?'sp':orders.includes(2)?'sp2':'sp3';
+      for(let p=0;p<nb[c].length;p++) for(let q=p+1;q<nb[c].length;q++){ const x=nb[c][p], y=nb[c][q], l1=bl[c+'_'+x], l2=bl[c+'_'+y], a=ANG[at[c].hyb]*Math.PI/180; cons.push([x,y,Math.sqrt(l1*l1+l2*l2-2*l1*l2*Math.cos(a))]); skip[x*128+y]=skip[y*128+x]=1; } }
     let s=seed*7919+13; const rnd=()=>{ s=(s*9301+49297)%233280; return s/233280; };
     const P=at.map(()=>new V(rnd()*6-3,rnd()*6-3,rnd()*6-3));
-    for(let it=0;it<700;it++){
-      cons.forEach(c=>{ const v=P[c[1]].clone().sub(P[c[0]]), l=v.length()||1e-6; v.multiplyScalar((l-c[2])/l*0.3); P[c[0]].add(v); P[c[1]].sub(v); });
-      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
-        if(skip[i*128+j]) continue;
-        const v=P[j].clone().sub(P[i]), l=v.length()||1e-6;
-        if(l<2.3){ v.multiplyScalar((2.3-l)/l*0.25); P[i].sub(v); P[j].add(v); }
-      }
+    for(let it=0;it<700;it++){ cons.forEach(c=>{ const v=P[c[1]].clone().sub(P[c[0]]), l=v.length()||1e-6; v.multiplyScalar((l-c[2])/l*0.3); P[c[0]].add(v); P[c[1]].sub(v); });
+      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ if(skip[i*128+j]) continue; const v=P[j].clone().sub(P[i]), l=v.length()||1e-6; if(l<2.3){ v.multiplyScalar((2.3-l)/l*0.25); P[i].sub(v); P[j].add(v); } }
     }
     const isCarbonyl=y=>at[y].el==='C' && bd.some(b=>b[2]===2 && ((b[0]===y&&at[b[1]].el==='O')||(b[1]===y&&at[b[0]].el==='O')));
     const ca=nb[0].find(x=>at[x].el==='C' && nb[x].some(isCarbonyl));
-    if(ca!==undefined){
-      const cp=nb[ca].find(isCarbonyl), R=nb[ca].find(y=>at[y].el==='C' && y!==cp);
-      if(R!==undefined){
-        const a=P[0].clone().sub(P[ca]), b=P[cp].clone().sub(P[ca]), c=P[R].clone().sub(P[ca]);
-        if(a.dot(new V().crossVectors(b,c))<0) P.forEach(p=>{ p.x=-p.x; });
-      }
-    }
+    if(ca!==undefined){ const cp=nb[ca].find(isCarbonyl), R=nb[ca].find(y=>at[y].el==='C' && y!==cp);
+      if(R!==undefined){ const a=P[0].clone().sub(P[ca]), b=P[cp].clone().sub(P[ca]), c=P[R].clone().sub(P[ca]); if(a.dot(new V().crossVectors(b,c))<0) P.forEach(p=>{ p.x=-p.x; }); } }
     return {A:at.map((a,i)=>({el:a.el,pos:P[i],hyb:a.hyb})), L:bd};
   }
-
   function buildMol(i){
     clearRoot(molRoot); molAtoms=[]; molBonds=[];
     const it=LIST[view][i], hydro=view==='mol', data=hydro?molData(it.def):aminoData(it.smi,i+1), A=data.A, L=data.L, WORD={1:'single',2:'double',3:'triple'};
     const c=A.reduce((s,a)=>s.add(a.pos), new V()).divideScalar(A.length);
     A.forEach(a=>a.pos.sub(c));
     const colFor = el => el==='C' && hydro ? (it.group==='Cyclic'?0xffb703:0xff4d8d) : COL[el];
-    A.forEach(a=>{
-      const m=new THREE.Mesh(unitGeo, vivid(colFor(a.el), a.el==='H'?0.3:0.28)); m.position.copy(a.pos);
-      m.userData={kind:'atom', el:a.el, hyb:a.hyb, hover:1, base:1, cnt:{}, nbr:[]}; molRoot.add(m); molAtoms.push(m);
-    });
-    L.forEach(l=>{
-      const a=l[0], b=l[1], o=l[2], ar=!!l[3], pa=A[a].pos, pb=A[b].pos, dir=pb.clone().sub(pa), len=dir.length(); dir.normalize();
+    A.forEach(a=>{ const m=new THREE.Mesh(unitGeo, vivid(colFor(a.el), a.el==='H'?0.3:0.28)); m.position.copy(a.pos); m.userData={kind:'atom',el:a.el,hyb:a.hyb,hover:1,base:1,cnt:{},nbr:[]}; molRoot.add(m); molAtoms.push(m); });
+    L.forEach(l=>{ const a=l[0], b=l[1], o=l[2], ar=!!l[3], pa=A[a].pos, pb=A[b].pos, dir=pb.clone().sub(pa), len=dir.length(); dir.normalize();
       [a,b].forEach(x=>{ const u=molAtoms[x].userData; u.cnt[o]=(u.cnt[o]||0)+1; u.nbr.push(A[x===a?b:a].el); });
       const perp=new V().crossVectors(Zax,dir); if(perp.lengthSq()<1e-6) perp.set(0,1,0); perp.normalize();
       (o===1?[0]:o===2?[-0.12,0.12]:[-0.17,0,0.17]).forEach(off=>{
         const m=new THREE.Mesh(cylGeo,mB); m.position.copy(pa.clone().add(pb).multiplyScalar(0.5).add(perp.clone().multiplyScalar(off)));
         m.quaternion.setFromUnitVectors(YA,dir); const bx=o===1?1:0.75; m.scale.set(bx,len,bx);
-        m.userData={kind:'bond', ea:A[a].el, eb:A[b].el, o, ar, bx, len, hover:1}; molRoot.add(m); molBonds.push(m);
-      });
+        m.userData={kind:'bond',ea:A[a].el,eb:A[b].el,o,ar,bx,len,hover:1}; molRoot.add(m); molBonds.push(m); });
     });
     molAtoms.forEach(m=>{ const u=m.userData; u.bonds=[1,2,3].filter(k=>u.cnt[k]).map(k=>u.cnt[k]+' '+WORD[k]).join(', '); });
     const counts={}; A.forEach(a=>{ counts[a.el]=(counts[a.el]||0)+1; });
@@ -588,1038 +507,687 @@ body.focus #menuWrap{display:none!important}
     $('molLegend').innerHTML=order.map(e=>'<span><i style="background:'+HEX(colFor(e))+'"></i>'+EN[e]+' <b>'+counts[e]+'</b></span>').join('');
     const formula=order.map(e=>e+(counts[e]>1?counts[e]:'')).join('');
     $('title').textContent=it.name;
-    if(hydro){
-      const def=it.def, cls=typeof def==='string'?(def==='ring6a'?'Arene':'Cycloalkane'):def.includes(3)?'Alkyne':def.includes(2)?'Alkene':'Alkane';
+    if(hydro){ const def=it.def, cls=typeof def==='string'?(def==='ring6a'?'Arene':'Cycloalkane'):def.includes(3)?'Alkyne':def.includes(2)?'Alkene':'Alkane';
       const GEN={Alkane:'CₙH₂ₙ₊₂',Alkene:'CₙH₂ₙ',Alkyne:'CₙH₂ₙ₋₂',Cycloalkane:'CₙH₂ₙ',Arene:'aromatic ring'};
       $('sub').textContent=sub(formula)+', '+cls.toLowerCase()+' ('+GEN[cls]+')';
     } else $('sub').textContent=sub(formula)+', '+it.group.toLowerCase()+' side chain, neutral form';
     defR=Math.max(...A.map(a=>a.pos.length()))*2.2+4;
-    curIdx[view]=i; applyStyle(); renderPick();
-    enterView();
+    curIdx[view]=i; applyStyle(); renderPick(); enterView();
   }
-  function applyStyle(){
-    molAtoms.forEach(m=>{ m.userData.base=(spaceFill?RF:RB)[m.userData.el]; });
-    molBonds.forEach(b=>b.visible=!spaceFill);
-  }
+  function applyStyle(){ molAtoms.forEach(m=>{ m.userData.base=(spaceFill?RF:RB)[m.userData.el]; }); molBonds.forEach(b=>b.visible=!spaceFill); }
   function renderPick(){
     const heads=$('pickHeads'), box=$('pickItems'), list=LIST[view];
     heads.innerHTML=''; box.innerHTML=''; box.hidden=!openGroup;
-    [...new Set(list.map(x=>x.group))].forEach(g=>{
-      const b=document.createElement('button'); b.className='chip wide'; b.type='button';
+    [...new Set(list.map(x=>x.group))].forEach(g=>{ const b=document.createElement('button'); b.className='chip wide'; b.type='button';
       b.setAttribute('aria-expanded', g===openGroup); b.textContent=g+(g===openGroup?' ▴':' ▾');
-      b.addEventListener('click', ()=>{ openGroup=openGroup===g?null:g; renderPick(); });
-      heads.appendChild(b);
-    });
-    list.forEach((it,i)=>{
-      if(it.group!==openGroup) return;
-      const b=document.createElement('button'); b.className='chip wide'; b.type='button'; b.textContent=it.name; b.setAttribute('aria-pressed', i===curIdx[view]);
-      b.addEventListener('click', ()=>buildMol(i)); box.appendChild(b);
-    });
+      b.addEventListener('click', ()=>{ openGroup=openGroup===g?null:g; renderPick(); }); heads.appendChild(b); });
+    list.forEach((it,i)=>{ if(it.group!==openGroup) return; const b=document.createElement('button'); b.className='chip wide'; b.type='button'; b.textContent=it.name; b.setAttribute('aria-pressed', i===curIdx[view]); b.addEventListener('click', ()=>buildMol(i)); box.appendChild(b); });
   }
-  function clearRoot(r){
-    while(r.children.length){ const o=r.children[0]; r.remove(o);
-      o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
-  }
+  function clearRoot(r){ while(r.children.length){ const o=r.children[0]; r.remove(o); o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); } }
 
-  // ======================= SOLAR SYSTEM =======================
+  // ============ MILKY WAY ============
+  const SUN_GALAXY_POS = new V(700, 0, 500);
+
   const SOLAR = {
     systems: [],
     exoticBodies: [],
+    nebulae: [],
+    sgrA: null,
+    galaxyPoints: null,
+    sunMarker: null,
     fabric: null,
     showOrbits: true,
     showMoons: true,
     showFabric: true,
-    currentSystem: 0
+    currentDest: 'sys:0'
   };
 
-  // --- Star visual presets ---
   const STAR_TYPES = {
     'main-sequence': { color:0xffdd44, glow1:0.40, glow2:0.22, corona:0.10, light:2.2, coronaScale:2.5, pulseSpeed:2.3, pulseAmp:0.03, sparkCount:30, sparkScale:0.08 },
     'red-dwarf':     { color:0xff5533, glow1:0.35, glow2:0.18, corona:0.08, light:1.2, coronaScale:2.2, pulseSpeed:1.8, pulseAmp:0.04, sparkCount:20, sparkScale:0.07 },
     'orange-dwarf':  { color:0xffaa55, glow1:0.38, glow2:0.20, corona:0.09, light:1.6, coronaScale:2.3, pulseSpeed:2.0, pulseAmp:0.03, sparkCount:24, sparkScale:0.075 },
     'blue-star':     { color:0xaaccff, glow1:0.55, glow2:0.30, corona:0.15, light:3.5, coronaScale:2.8, pulseSpeed:3.5, pulseAmp:0.04, sparkCount:40, sparkScale:0.09 },
     'white-dwarf':   { color:0xeeffff, glow1:0.60, glow2:0.25, corona:0.05, light:1.5, coronaScale:1.6, pulseSpeed:4.0, pulseAmp:0.02, sparkCount:0, sparkScale:0 },
-    'red-giant':     { color:0xff6633, glow1:0.30, glow2:0.20, corona:0.15, light:2.5, coronaScale:2.0, pulseSpeed:1.0, pulseAmp:0.06, sparkCount:50, sparkScale:0.11 }
+    'red-giant':     { color:0xff6633, glow1:0.30, glow2:0.20, corona:0.15, light:2.5, coronaScale:2.0, pulseSpeed:1.0, pulseAmp:0.06, sparkCount:50, sparkScale:0.11 },
+    'orange-giant':  { color:0xffaa66, glow1:0.35, glow2:0.22, corona:0.12, light:2.0, coronaScale:2.2, pulseSpeed:1.4, pulseAmp:0.05, sparkCount:35, sparkScale:0.09 },
+    'yellow-giant':  { color:0xffcc44, glow1:0.40, glow2:0.22, corona:0.10, light:2.8, coronaScale:2.3, pulseSpeed:1.8, pulseAmp:0.04, sparkCount:35, sparkScale:0.09 }
   };
 
   function createStar(type, radius){
     const cfg = STAR_TYPES[type] || STAR_TYPES['main-sequence'];
     const color = cfg.color;
     const group = new THREE.Group();
-
-    const core = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 32, 24),
-      new THREE.MeshBasicMaterial({ color })
-    );
-    group.add(core);
-
-    const glow1 = new THREE.Mesh(
-      new THREE.SphereGeometry(radius * 1.2, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow1, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(glow1);
-
-    const glow2 = new THREE.Mesh(
-      new THREE.SphereGeometry(radius * 1.6, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow2, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(glow2);
-
-    const corona = new THREE.Mesh(
-      new THREE.SphereGeometry(radius * cfg.coronaScale, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.corona, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(corona);
-
+    group.add(new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 24), new THREE.MeshBasicMaterial({ color })));
+    const glow1 = new THREE.Mesh(new THREE.SphereGeometry(radius*1.2, 32, 24), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow1, blending:THREE.AdditiveBlending, depthWrite:false })); group.add(glow1);
+    const glow2 = new THREE.Mesh(new THREE.SphereGeometry(radius*1.6, 32, 24), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow2, blending:THREE.AdditiveBlending, depthWrite:false })); group.add(glow2);
+    const corona = new THREE.Mesh(new THREE.SphereGeometry(radius*cfg.coronaScale, 32, 24), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.corona, blending:THREE.AdditiveBlending, depthWrite:false })); group.add(corona);
     let sparks = null;
     if (cfg.sparkCount > 0){
-      const sparkGeo = new THREE.BufferGeometry();
-      const sparkPos = new Float32Array(cfg.sparkCount * 3);
-      for (let i = 0; i < cfg.sparkCount; i++){
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        const r = radius * (1.3 + Math.random() * 0.9);
-        sparkPos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
-        sparkPos[i*3+1] = Math.cos(phi) * r;
-        sparkPos[i*3+2] = Math.sin(phi) * Math.sin(theta) * r;
-      }
-      sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
-      sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
-        color:0xffffee, size: radius * cfg.sparkScale, transparent:true, opacity:0.85,
-        blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
-      }));
+      const geo = new THREE.BufferGeometry(); const pos = new Float32Array(cfg.sparkCount*3);
+      for (let i=0;i<cfg.sparkCount;i++){ const theta=Math.random()*Math.PI*2, phi=Math.acos(2*Math.random()-1), r=radius*(1.3+Math.random()*0.9); pos[i*3]=Math.sin(phi)*Math.cos(theta)*r; pos[i*3+1]=Math.cos(phi)*r; pos[i*3+2]=Math.sin(phi)*Math.sin(theta)*r; }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color:0xffffee, size:radius*cfg.sparkScale, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }));
       group.add(sparks);
     }
-
-    const light = new THREE.PointLight(color, cfg.light, radius * 80);
-    group.add(light);
-
-    group.userData.starFx = {
-      type: 'star',
-      core, glow1, glow2, corona, sparks, light, radius,
-      pulseSpeed: cfg.pulseSpeed, pulseAmp: cfg.pulseAmp,
-      baseGlow1: cfg.glow1, baseGlow2: cfg.glow2, baseCorona: cfg.corona, baseLight: cfg.light
-    };
+    const light = new THREE.PointLight(color, cfg.light, radius*100); group.add(light);
+    group.userData.starFx = { type:'star', glow1, glow2, corona, sparks, light, radius, pulseSpeed:cfg.pulseSpeed, pulseAmp:cfg.pulseAmp, baseGlow1:cfg.glow1, baseGlow2:cfg.glow2, baseCorona:cfg.corona, baseLight:cfg.light };
     return group;
   }
-
-  function animateStar(starGroup, time, dt){
-    const fx = starGroup.userData.starFx;
-    if (!fx || fx.type !== 'star') return;
-    const s = fx.pulseSpeed, a = fx.pulseAmp;
-
-    fx.glow1.scale.setScalar(1 + Math.sin(time * s) * a);
-    fx.glow2.scale.setScalar(1 + Math.sin(time * s * 0.7 + 0.7) * a * 1.4);
-    fx.corona.scale.setScalar(1 + Math.sin(time * s * 0.5 + 1.4) * a * 1.8);
-
-    fx.glow1.material.opacity = fx.baseGlow1 + Math.sin(time * s * 1.2) * 0.05;
-    fx.glow2.material.opacity = fx.baseGlow2 + Math.sin(time * s * 0.9 + 0.5) * 0.04;
-    fx.corona.material.opacity = fx.baseCorona + Math.sin(time * s * 0.7 + 1.0) * 0.02;
-
-    fx.light.intensity = fx.baseLight + Math.sin(time * s * 1.4) * 0.3;
-
-    if (fx.sparks){
-      fx.sparks.rotation.y += dt * 0.4;
-      fx.sparks.rotation.x += dt * 0.2;
-    }
+  function animateStar(g, time, dt){
+    const fx = g.userData.starFx; if(!fx || fx.type!=='star') return;
+    const s=fx.pulseSpeed, a=fx.pulseAmp;
+    fx.glow1.scale.setScalar(1+Math.sin(time*s)*a);
+    fx.glow2.scale.setScalar(1+Math.sin(time*s*0.7+0.7)*a*1.4);
+    fx.corona.scale.setScalar(1+Math.sin(time*s*0.5+1.4)*a*1.8);
+    fx.glow1.material.opacity = fx.baseGlow1 + Math.sin(time*s*1.2)*0.05;
+    fx.glow2.material.opacity = fx.baseGlow2 + Math.sin(time*s*0.9+0.5)*0.04;
+    fx.corona.material.opacity = fx.baseCorona + Math.sin(time*s*0.7+1.0)*0.02;
+    fx.light.intensity = fx.baseLight + Math.sin(time*s*1.4)*0.3;
+    if(fx.sparks){ fx.sparks.rotation.y+=dt*0.4; fx.sparks.rotation.x+=dt*0.2; }
   }
 
-  // --- Neutron star ---
   function createNeutronStar(){
-    const group = new THREE.Group();
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 24), new THREE.MeshBasicMaterial({ color: 0xaaddff }));
-    group.add(core);
-    const glow1 = new THREE.Mesh(new THREE.SphereGeometry(1.1, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false }));
-    group.add(glow1);
-    const glow2 = new THREE.Mesh(new THREE.SphereGeometry(1.8, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending, depthWrite:false }));
-    group.add(glow2);
-    const beams = new THREE.Group();
-    for (const sign of [1, -1]){
-      const beam = new THREE.Mesh(
-        new THREE.ConeGeometry(0.6, 9, 16, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, depthWrite:false })
-      );
-      beam.position.y = sign * 4.5;
-      if (sign < 0) beam.rotation.x = Math.PI;
-      beams.add(beam);
-    }
-    group.add(beams);
-    const light = new THREE.PointLight(0x99ccff, 2.5, 60);
-    group.add(light);
-    group.userData.starFx = { core, glow1, glow2, beams, light, type:'neutronStar' };
-    return group;
+    const g=new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(0.7,32,24), new THREE.MeshBasicMaterial({color:0xaaddff})));
+    const glow1=new THREE.Mesh(new THREE.SphereGeometry(1.1,32,24), new THREE.MeshBasicMaterial({color:0xaaddff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false})); g.add(glow1);
+    const glow2=new THREE.Mesh(new THREE.SphereGeometry(1.8,32,24), new THREE.MeshBasicMaterial({color:0x88bbff,transparent:true,opacity:0.15,blending:THREE.AdditiveBlending,depthWrite:false})); g.add(glow2);
+    const beams=new THREE.Group();
+    for(const sign of [1,-1]){ const b=new THREE.Mesh(new THREE.ConeGeometry(0.6,9,16,1,true), new THREE.MeshBasicMaterial({color:0xaaddff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,depthWrite:false})); b.position.y=sign*4.5; if(sign<0) b.rotation.x=Math.PI; beams.add(b); }
+    g.add(beams);
+    const light=new THREE.PointLight(0x99ccff,2.5,80); g.add(light);
+    g.userData.starFx={glow1,glow2,beams,light,type:'neutronStar'};
+    return g;
   }
-
-  // --- Black hole ---
-  function createBlackHole(){
-    const group = new THREE.Group();
-    const horizon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-    group.add(horizon);
-    const halo = new THREE.Mesh(new THREE.SphereGeometry(1.75, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0x221133, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false }));
-    group.add(halo);
-    const photon = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.5, 64),
-      new THREE.MeshBasicMaterial({ color:0xffcc88, side:THREE.DoubleSide, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false }));
-    photon.rotation.x = Math.PI / 2;
-    group.add(photon);
-    const disk = new THREE.Mesh(new THREE.RingGeometry(2.6, 6.5, 80),
-      new THREE.MeshBasicMaterial({ color:0xff6622, side:THREE.DoubleSide, transparent:true, opacity:0.5, blending:THREE.AdditiveBlending, depthWrite:false }));
-    disk.rotation.x = Math.PI / 2 - 0.35;
-    group.add(disk);
-    const innerDisk = new THREE.Mesh(new THREE.RingGeometry(2.5, 4.0, 64),
-      new THREE.MeshBasicMaterial({ color:0xffcc44, side:THREE.DoubleSide, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false }));
-    innerDisk.rotation.x = Math.PI / 2 - 0.35;
-    group.add(innerDisk);
-    const light = new THREE.PointLight(0xff8844, 2.0, 80);
-    group.add(light);
-    group.userData.starFx = { horizon, halo, photon, disk, innerDisk, light, type:'blackHole' };
-    return group;
+  function createBlackHole(scale){
+    const g=new THREE.Group(); const s = scale || 1;
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(1.6*s,32,24), new THREE.MeshBasicMaterial({color:0x000000})));
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(1.75*s,32,24), new THREE.MeshBasicMaterial({color:0x221133,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false})));
+    const photon=new THREE.Mesh(new THREE.RingGeometry(2.2*s,2.5*s,64), new THREE.MeshBasicMaterial({color:0xffcc88,side:THREE.DoubleSide,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false})); photon.rotation.x=Math.PI/2; g.add(photon);
+    const disk=new THREE.Mesh(new THREE.RingGeometry(2.6*s,6.5*s,80), new THREE.MeshBasicMaterial({color:0xff6622,side:THREE.DoubleSide,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false})); disk.rotation.x=Math.PI/2-0.35; g.add(disk);
+    const innerDisk=new THREE.Mesh(new THREE.RingGeometry(2.5*s,4.0*s,64), new THREE.MeshBasicMaterial({color:0xffcc44,side:THREE.DoubleSide,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false})); innerDisk.rotation.x=Math.PI/2-0.35; g.add(innerDisk);
+    g.add(new THREE.PointLight(0xff8844,2.0,100));
+    g.userData.starFx={disk,innerDisk,photon,type:'blackHole'};
+    return g;
   }
-
+  function createSgrA(){
+    const g=new THREE.Group(); const s=3.0;
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(3.5,32,24), new THREE.MeshBasicMaterial({color:0x000000})));
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(3.9,32,24), new THREE.MeshBasicMaterial({color:0x331155,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false})));
+    const photon=new THREE.Mesh(new THREE.RingGeometry(4.6*s/3,5.4*s/3,64), new THREE.MeshBasicMaterial({color:0xffdd99,side:THREE.DoubleSide,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false})); photon.rotation.x=Math.PI/2; g.add(photon);
+    const disk=new THREE.Mesh(new THREE.RingGeometry(5.5,14,80), new THREE.MeshBasicMaterial({color:0xff8844,side:THREE.DoubleSide,transparent:true,opacity:0.45,blending:THREE.AdditiveBlending,depthWrite:false})); disk.rotation.x=Math.PI/2-0.28; g.add(disk);
+    const innerDisk=new THREE.Mesh(new THREE.RingGeometry(5.0,8.0,64), new THREE.MeshBasicMaterial({color:0xffdd66,side:THREE.DoubleSide,transparent:true,opacity:0.75,blending:THREE.AdditiveBlending,depthWrite:false})); innerDisk.rotation.x=Math.PI/2-0.28; g.add(innerDisk);
+    for(const sign of [1,-1]){ const jet=new THREE.Mesh(new THREE.ConeGeometry(1.2,32,12,1,true), new THREE.MeshBasicMaterial({color:0x88aaff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,depthWrite:false})); jet.position.y=sign*16; if(sign<0) jet.rotation.x=Math.PI; g.add(jet); }
+    g.add(new THREE.PointLight(0xff8844,3.5,200));
+    g.userData.starFx={disk,innerDisk,photon,type:'sgrA'};
+    return g;
+  }
   function animateExotic(dt, time){
-    for (const ex of SOLAR.exoticBodies){
-      const fx = ex.bodyGroup.userData.starFx;
-      if (!fx) continue;
-      if (fx.type === 'neutronStar'){
-        ex.bodyGroup.rotation.y += dt * 2.5;
-        if (fx.beams) fx.beams.rotation.y += dt * 1.8;
-        if (fx.glow1) fx.glow1.scale.setScalar(1 + Math.sin(time * 4) * 0.05);
-        if (fx.glow2) fx.glow2.scale.setScalar(1 + Math.sin(time * 2.5 + 1) * 0.06);
-        if (fx.light) fx.light.intensity = 2.3 + Math.sin(time * 5) * 0.4;
-      } else if (fx.type === 'blackHole'){
-        if (fx.disk) fx.disk.rotation.z += dt * 0.2;
-        if (fx.innerDisk) fx.innerDisk.rotation.z += dt * 0.45;
-        if (fx.photon) fx.photon.rotation.z += dt * 0.08;
-        if (fx.halo) fx.halo.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
-      }
+    for(const ex of SOLAR.exoticBodies){
+      const fx=ex.bodyGroup.userData.starFx; if(!fx) continue;
+      if(fx.type==='neutronStar'){ ex.bodyGroup.rotation.y+=dt*2.5; if(fx.beams) fx.beams.rotation.y+=dt*1.8; if(fx.glow1) fx.glow1.scale.setScalar(1+Math.sin(time*4)*0.05); if(fx.glow2) fx.glow2.scale.setScalar(1+Math.sin(time*2.5+1)*0.06); if(fx.light) fx.light.intensity=2.3+Math.sin(time*5)*0.4; }
+      else if(fx.type==='blackHole'){ if(fx.disk) fx.disk.rotation.z+=dt*0.2; if(fx.innerDisk) fx.innerDisk.rotation.z+=dt*0.45; if(fx.photon) fx.photon.rotation.z+=dt*0.08; }
+      else if(fx.type==='sgrA'){ if(fx.disk) fx.disk.rotation.z+=dt*0.15; if(fx.innerDisk) fx.innerDisk.rotation.z+=dt*0.35; if(fx.photon) fx.photon.rotation.z+=dt*0.05; }
+    }
+    if(SOLAR.sgrA){
+      const fx=SOLAR.sgrA.userData.starFx;
+      if(fx){ if(fx.disk) fx.disk.rotation.z+=dt*0.1; if(fx.innerDisk) fx.innerDisk.rotation.z+=dt*0.25; if(fx.photon) fx.photon.rotation.z+=dt*0.05; }
     }
   }
 
-  // ======================= SOLAR DATA =======================
+  // ============ PLANET DATA ============
   const PLANET_DATA = [
-    { name:'Mercury', color:0xb8b0a8, radius:0.25, orbitRadius:4.5, period:0.24, initAngle:0,
-      info:{ distance:'0.39 AU', period:'88 days', rotation:'58.6 days', moons:0,
-        desc:'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.' } },
-    { name:'Venus', color:0xe8c17e, radius:0.5, orbitRadius:6.2, period:0.62, initAngle:1.2,
-      info:{ distance:'0.72 AU', period:'225 days', rotation:'243 days (retrograde)', moons:0,
-        desc:'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.' } },
-    { name:'Earth', color:0x4a90d9, radius:0.55, orbitRadius:8.2, period:1.0, initAngle:2.8,
-      moons:[{ name:'Moon', color:0xcccccc, radius:0.15, orbitRadius:1.3, speed:1.4,
-        info:{ period:'27.3 days', diameter:'3,474 km', desc:"Earth's only natural satellite. Stabilises Earth's axial tilt." } }],
-      info:{ distance:'1.00 AU', period:'365.25 days', rotation:'24 hours', moons:1,
-        desc:'The only known planet with liquid water on its surface and life.' } },
-    { name:'Mars', color:0xc1440e, radius:0.35, orbitRadius:10.4, period:1.88, initAngle:4.1,
-      moons:[
-        { name:'Phobos', color:0xaaaaaa, radius:0.045, orbitRadius:0.75, speed:2.0,
-          info:{ period:'7.7 hours', diameter:'22 km', desc:'The larger, inner moon of Mars.' } },
-        { name:'Deimos', color:0xbbbbbb, radius:0.035, orbitRadius:1.1, speed:1.1,
-          info:{ period:'30 hours', diameter:'12 km', desc:'The smaller, outer moon of Mars.' } }],
-      info:{ distance:'1.52 AU', period:'687 days', rotation:'24.6 hours', moons:2,
-        desc:'The red planet, home to Olympus Mons.' } },
-    { name:'Jupiter', color:0xd4a373, radius:1.4, orbitRadius:15, period:11.86, initAngle:5.3,
-      moons:[
-        { name:'Io', color:0xffcc44, radius:0.09, orbitRadius:2.5, speed:1.8,
-          info:{ period:'1.77 days', diameter:'3,643 km', desc:'The most volcanically active body in the solar system.' } },
-        { name:'Europa', color:0xe8dcc0, radius:0.08, orbitRadius:3.2, speed:1.4,
-          info:{ period:'3.55 days', diameter:'3,122 km', desc:'Has a subsurface ocean that may harbour life.' } },
-        { name:'Ganymede', color:0xb8a890, radius:0.11, orbitRadius:4.0, speed:1.0,
-          info:{ period:'7.15 days', diameter:'5,268 km', desc:'The largest moon in the solar system.' } },
-        { name:'Callisto', color:0x887766, radius:0.10, orbitRadius:4.9, speed:0.7,
-          info:{ period:'16.7 days', diameter:'4,821 km', desc:'One of the most heavily cratered objects in the solar system.' } }],
-      info:{ distance:'5.20 AU', period:'11.86 years', rotation:'9.9 hours', moons:95,
-        desc:'A gas giant with the Great Red Spot.' } },
-    { name:'Saturn', color:0xe3c78a, radius:1.2, orbitRadius:20, period:29.46, initAngle:0.4, ring:true,
-      moons:[
-        { name:'Titan', color:0xddaa66, radius:0.10, orbitRadius:2.6, speed:1.0,
-          info:{ period:'16 days', diameter:'5,150 km', desc:"Saturn's largest moon, with methane lakes." } },
-        { name:'Rhea', color:0xcccccc, radius:0.05, orbitRadius:2.0, speed:1.6,
-          info:{ period:'4.5 days', diameter:'1,527 km', desc:'A heavily cratered moon of Saturn.' } }],
-      info:{ distance:'9.58 AU', period:'29.46 years', rotation:'10.7 hours', moons:146,
-        desc:'Famous for its spectacular rings.' } },
-    { name:'Uranus', color:0xa2d8e8, radius:0.9, orbitRadius:25, period:84.01, initAngle:2.2,
-      moons:[{ name:'Titania', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
-        info:{ period:'8.7 days', diameter:'1,578 km', desc:'The largest moon of Uranus.' } }],
-      info:{ distance:'19.22 AU', period:'84.01 years', rotation:'17.2 hours', moons:28,
-        desc:'An ice giant that rotates on its side.' } },
-    { name:'Neptune', color:0x3c5eb8, radius:0.9, orbitRadius:30, period:164.8, initAngle:3.9,
-      moons:[{ name:'Triton', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
-        info:{ period:'5.9 days', diameter:'2,707 km', desc:'A retrograde moon, likely a captured Kuiper Belt object.' } }],
-      info:{ distance:'30.05 AU', period:'164.8 years', rotation:'16.1 hours', moons:16,
-        desc:'The windiest planet, with winds exceeding 2,000 km/h.' } }
+    {name:'Mercury',color:0xb8b0a8,radius:0.25,orbitRadius:4.5,period:0.24,initAngle:0,info:{distance:'0.39 AU',period:'88 days',rotation:'58.6 days',moons:0,desc:'The smallest planet and closest to the Sun.'}},
+    {name:'Venus',color:0xe8c17e,radius:0.5,orbitRadius:6.2,period:0.62,initAngle:1.2,info:{distance:'0.72 AU',period:'225 days',rotation:'243 days (retrograde)',moons:0,desc:'The hottest planet with a runaway greenhouse effect.'}},
+    {name:'Earth',color:0x4a90d9,radius:0.55,orbitRadius:8.2,period:1.0,initAngle:2.8,moons:[{name:'Moon',color:0xcccccc,radius:0.15,orbitRadius:1.3,speed:1.4,info:{period:'27.3 days',diameter:'3,474 km',desc:'Earth\'s only natural satellite.'}}],info:{distance:'1.00 AU',period:'365.25 days',rotation:'24 hours',moons:1,desc:'The only known planet with life.'}},
+    {name:'Mars',color:0xc1440e,radius:0.35,orbitRadius:10.4,period:1.88,initAngle:4.1,moons:[{name:'Phobos',color:0xaaaaaa,radius:0.045,orbitRadius:0.75,speed:2.0,info:{period:'7.7 hours',diameter:'22 km',desc:'The larger, inner moon of Mars.'}},{name:'Deimos',color:0xbbbbbb,radius:0.035,orbitRadius:1.1,speed:1.1,info:{period:'30 hours',diameter:'12 km',desc:'The smaller moon of Mars.'}}],info:{distance:'1.52 AU',period:'687 days',rotation:'24.6 hours',moons:2,desc:'The red planet, home to Olympus Mons.'}},
+    {name:'Jupiter',color:0xd4a373,radius:1.4,orbitRadius:15,period:11.86,initAngle:5.3,moons:[{name:'Io',color:0xffcc44,radius:0.09,orbitRadius:2.5,speed:1.8,info:{period:'1.77 days',diameter:'3,643 km',desc:'The most volcanically active body in the solar system.'}},{name:'Europa',color:0xe8dcc0,radius:0.08,orbitRadius:3.2,speed:1.4,info:{period:'3.55 days',diameter:'3,122 km',desc:'Has a subsurface ocean that may harbour life.'}},{name:'Ganymede',color:0xb8a890,radius:0.11,orbitRadius:4.0,speed:1.0,info:{period:'7.15 days',diameter:'5,268 km',desc:'The largest moon in the solar system.'}},{name:'Callisto',color:0x887766,radius:0.10,orbitRadius:4.9,speed:0.7,info:{period:'16.7 days',diameter:'4,821 km',desc:'One of the most heavily cratered objects in the solar system.'}}],info:{distance:'5.20 AU',period:'11.86 years',rotation:'9.9 hours',moons:95,desc:'A gas giant with the Great Red Spot.'}},
+    {name:'Saturn',color:0xe3c78a,radius:1.2,orbitRadius:20,period:29.46,initAngle:0.4,ring:true,moons:[{name:'Titan',color:0xddaa66,radius:0.10,orbitRadius:2.6,speed:1.0,info:{period:'16 days',diameter:'5,150 km',desc:'Saturn\'s largest moon, with methane lakes.'}},{name:'Rhea',color:0xcccccc,radius:0.05,orbitRadius:2.0,speed:1.6,info:{period:'4.5 days',diameter:'1,527 km',desc:'A heavily cratered moon of Saturn.'}}],info:{distance:'9.58 AU',period:'29.46 years',rotation:'10.7 hours',moons:146,desc:'Famous for its spectacular rings.'}},
+    {name:'Uranus',color:0xa2d8e8,radius:0.9,orbitRadius:25,period:84.01,initAngle:2.2,moons:[{name:'Titania',color:0xbbbbbb,radius:0.06,orbitRadius:1.8,speed:1.2,info:{period:'8.7 days',diameter:'1,578 km',desc:'The largest moon of Uranus.'}}],info:{distance:'19.22 AU',period:'84.01 years',rotation:'17.2 hours',moons:28,desc:'An ice giant that rotates on its side.'}},
+    {name:'Neptune',color:0x3c5eb8,radius:0.9,orbitRadius:30,period:164.8,initAngle:3.9,moons:[{name:'Triton',color:0xbbbbbb,radius:0.06,orbitRadius:1.8,speed:1.2,info:{period:'5.9 days',diameter:'2,707 km',desc:'A retrograde moon, likely a captured Kuiper Belt object.'}}],info:{distance:'30.05 AU',period:'164.8 years',rotation:'16.1 hours',moons:16,desc:'The windiest planet.'}}
   ];
-
   const PROXIMA_PLANETS = [
-    { name:'Proxima d', color:0xdd8866, radius:0.20, orbitRadius:1.8, period:0.014, initAngle:0,
-      info:{ distance:'0.029 AU', period:'5.12 days', rotation:'tidal lock', moons:0,
-        desc:'A sub-Earth mass planet — the innermost world of Proxima Centauri.' } },
-    { name:'Proxima b', color:0x88bbaa, radius:0.35, orbitRadius:3.0, period:0.031, initAngle:1.5,
-      info:{ distance:'0.0485 AU', period:'11.2 days', rotation:'tidal lock', moons:0,
-        desc:'A roughly Earth-mass planet in the habitable zone.' } },
-    { name:'Proxima c', color:0x6688aa, radius:0.60, orbitRadius:6.0, period:5.28, initAngle:3.2,
-      info:{ distance:'1.49 AU', period:'5.28 years', rotation:'unknown', moons:0,
-        desc:'A super-Earth or mini-Neptune on a wide orbit.' } }
+    {name:'Proxima d',color:0xdd8866,radius:0.20,orbitRadius:1.8,period:0.014,initAngle:0,info:{distance:'0.029 AU',period:'5.12 days',rotation:'tidal lock',moons:0,desc:'A sub-Earth mass planet — the innermost world of Proxima Centauri.'}},
+    {name:'Proxima b',color:0x88bbaa,radius:0.35,orbitRadius:3.0,period:0.031,initAngle:1.5,info:{distance:'0.0485 AU',period:'11.2 days',rotation:'tidal lock',moons:0,desc:'A roughly Earth-mass planet in the habitable zone.'}},
+    {name:'Proxima c',color:0x6688aa,radius:0.60,orbitRadius:6.0,period:5.28,initAngle:3.2,info:{distance:'1.49 AU',period:'5.28 years',rotation:'unknown',moons:0,desc:'A super-Earth or mini-Neptune on a wide orbit.'}}
   ];
-
   const TAU_CETI_PLANETS = [
-    { name:'Tau Ceti e', color:0xaa8877, radius:0.4, orbitRadius:3.5, period:0.45, initAngle:0,
-      info:{ distance:'0.55 AU', period:'162 days', rotation:'unknown', moons:0,
-        desc:'A super-Earth candidate in the habitable zone of Tau Ceti.' } },
-    { name:'Tau Ceti f', color:0x886655, radius:0.45, orbitRadius:5.0, period:1.7, initAngle:2,
-      info:{ distance:'1.35 AU', period:'1,270 days', rotation:'unknown', moons:0,
-        desc:'A super-Earth on the outer edge of Tau Ceti\'s habitable zone.' } }
+    {name:'Tau Ceti e',color:0xaa8877,radius:0.4,orbitRadius:3.5,period:0.45,initAngle:0,info:{distance:'0.55 AU',period:'162 days',rotation:'unknown',moons:0,desc:'A super-Earth candidate in the habitable zone.'}},
+    {name:'Tau Ceti f',color:0x886655,radius:0.45,orbitRadius:5.0,period:1.7,initAngle:2,info:{distance:'1.35 AU',period:'1,270 days',rotation:'unknown',moons:0,desc:'A super-Earth on the outer edge of the habitable zone.'}}
   ];
-
   const TRAPPIST_PLANETS = [
-    { name:'Trappist-1b', color:0xddaa88, radius:0.18, orbitRadius:1.1, period:0.004, initAngle:0,
-      info:{ distance:'0.011 AU', period:'1.51 days', rotation:'tidally locked', moons:0,
-        desc:'The innermost world — likely too hot for liquid water.' } },
-    { name:'Trappist-1c', color:0xddbb99, radius:0.18, orbitRadius:1.5, period:0.0067, initAngle:1,
-      info:{ distance:'0.016 AU', period:'2.42 days', rotation:'tidally locked', moons:0,
-        desc:'Second planet — likely a Venus-like world.' } },
-    { name:'Trappist-1d', color:0xcccc99, radius:0.14, orbitRadius:2.0, period:0.011, initAngle:2,
-      info:{ distance:'0.022 AU', period:'4.05 days', rotation:'tidally locked', moons:0,
-        desc:'In the habitable zone — one of three potentially water-bearing worlds.' } },
-    { name:'Trappist-1e', color:0x99bbaa, radius:0.17, orbitRadius:2.5, period:0.017, initAngle:3,
-      info:{ distance:'0.029 AU', period:'6.10 days', rotation:'tidally locked', moons:0,
-        desc:'The most Earth-like of the seven — right in the middle of the habitable zone.' } },
-    { name:'Trappist-1f', color:0x99aabb, radius:0.18, orbitRadius:3.0, period:0.025, initAngle:4,
-      info:{ distance:'0.038 AU', period:'9.21 days', rotation:'tidally locked', moons:0,
-        desc:'A cooler planet — could have water ice on its surface.' } },
-    { name:'Trappist-1g', color:0x8899aa, radius:0.19, orbitRadius:3.5, period:0.034, initAngle:5,
-      info:{ distance:'0.047 AU', period:'12.35 days', rotation:'tidally locked', moons:0,
-        desc:'The largest planet in the system.' } },
-    { name:'Trappist-1h', color:0x7788aa, radius:0.13, orbitRadius:4.0, period:0.05, initAngle:6,
-      info:{ distance:'0.062 AU', period:'18.77 days', rotation:'tidally locked', moons:0,
-        desc:'The outermost and coldest world of the seven.' } }
+    {name:'Trappist-1b',color:0xddaa88,radius:0.18,orbitRadius:1.1,period:0.004,initAngle:0,info:{distance:'0.011 AU',period:'1.51 days',rotation:'tidally locked',moons:0,desc:'Innermost world — likely too hot.'}},
+    {name:'Trappist-1c',color:0xddbb99,radius:0.18,orbitRadius:1.5,period:0.0067,initAngle:1,info:{distance:'0.016 AU',period:'2.42 days',rotation:'tidally locked',moons:0,desc:'Second planet — likely Venus-like.'}},
+    {name:'Trappist-1d',color:0xcccc99,radius:0.14,orbitRadius:2.0,period:0.011,initAngle:2,info:{distance:'0.022 AU',period:'4.05 days',rotation:'tidally locked',moons:0,desc:'In the habitable zone — one of three potentially water-bearing worlds.'}},
+    {name:'Trappist-1e',color:0x99bbaa,radius:0.17,orbitRadius:2.5,period:0.017,initAngle:3,info:{distance:'0.029 AU',period:'6.10 days',rotation:'tidally locked',moons:0,desc:'The most Earth-like of the seven.'}},
+    {name:'Trappist-1f',color:0x99aabb,radius:0.18,orbitRadius:3.0,period:0.025,initAngle:4,info:{distance:'0.038 AU',period:'9.21 days',rotation:'tidally locked',moons:0,desc:'Could have water ice on its surface.'}},
+    {name:'Trappist-1g',color:0x8899aa,radius:0.19,orbitRadius:3.5,period:0.034,initAngle:5,info:{distance:'0.047 AU',period:'12.35 days',rotation:'tidally locked',moons:0,desc:'The largest planet in the system.'}},
+    {name:'Trappist-1h',color:0x7788aa,radius:0.13,orbitRadius:4.0,period:0.05,initAngle:6,info:{distance:'0.062 AU',period:'18.77 days',rotation:'tidally locked',moons:0,desc:'The outermost and coldest world.'}}
+  ];
+  const EPS_ERI_PLANETS = [
+    {name:'Epsilon Eridani b',color:0xddbb88,radius:0.9,orbitRadius:4.0,period:7.3,initAngle:1,info:{distance:'3.5 AU',period:'7.3 years',rotation:'unknown',moons:0,desc:'A gas giant, roughly 1.5× Jupiter\'s mass, on an eccentric orbit.'}}
+  ];
+  const PEG51_PLANETS = [
+    {name:'51 Pegasi b',color:0xff8866,radius:1.2,orbitRadius:1.8,period:0.0117,initAngle:0,info:{distance:'0.053 AU',period:'4.23 days',rotation:'tidally locked',moons:0,desc:'The first exoplanet discovered around a Sun-like star (1995). A hot Jupiter with a surface temperature of ~1,000 °C.'}}
+  ];
+  const HD10180_PLANETS = [
+    {name:'HD 10180 b',color:0xcc9977,radius:0.25,orbitRadius:1.2,period:0.0031,initAngle:0,info:{distance:'0.022 AU',period:'1.18 days',rotation:'unknown',moons:0,desc:'A hot super-Earth.'}},
+    {name:'HD 10180 c',color:0xddbb99,radius:0.35,orbitRadius:2.0,period:0.0155,initAngle:1,info:{distance:'0.064 AU',period:'5.76 days',rotation:'unknown',moons:0,desc:'A Neptune-sized world.'}},
+    {name:'HD 10180 d',color:0xbbaa88,radius:0.4,orbitRadius:2.8,period:0.044,initAngle:2,info:{distance:'0.13 AU',period:'16.4 days',rotation:'unknown',moons:0,desc:'A Neptune-class planet.'}},
+    {name:'HD 10180 e',color:0xdd9977,radius:0.55,orbitRadius:3.6,period:0.136,initAngle:3,info:{distance:'0.27 AU',period:'49.7 days',rotation:'unknown',moons:0,desc:'A super-Earth or sub-Neptune.'}},
+    {name:'HD 10180 f',color:0xaa8866,radius:0.5,orbitRadius:4.5,period:0.33,initAngle:4,info:{distance:'0.49 AU',period:'122 days',rotation:'unknown',moons:0,desc:'A mini-Neptune.'}},
+    {name:'HD 10180 g',color:0xbb9977,radius:0.6,orbitRadius:5.5,period:1.6,initAngle:5,info:{distance:'1.42 AU',period:'1.6 years',rotation:'unknown',moons:0,desc:'A Jovian-class planet, roughly 65× Earth\'s mass.'}}
+  ];
+  const KEPLER90_PLANETS = [
+    {name:'Kepler-90 b',color:0xddaa88,radius:0.18,orbitRadius:1.5,period:0.0195,initAngle:0,info:{distance:'0.074 AU',period:'7.0 days',rotation:'unknown',moons:0,desc:'The innermost and smallest planet in this compact system.'}},
+    {name:'Kepler-90 c',color:0xddbb99,radius:0.2,orbitRadius:2.0,period:0.0236,initAngle:0.8,info:{distance:'0.089 AU',period:'8.7 days',rotation:'unknown',moons:0,desc:'An Earth-sized planet.'}},
+    {name:'Kepler-90 d',color:0xccaa88,radius:0.3,orbitRadius:2.6,period:0.0164,initAngle:1.6,info:{distance:'0.32 AU',period:'59.7 days',rotation:'unknown',moons:0,desc:'A mini-Neptune.'}},
+    {name:'Kepler-90 e',color:0xbb9977,radius:0.28,orbitRadius:3.2,period:0.0246,initAngle:2.4,info:{distance:'0.42 AU',period:'91.9 days',rotation:'unknown',moons:0,desc:'A mini-Neptune.'}},
+    {name:'Kepler-90 f',color:0xccaa88,radius:0.3,orbitRadius:3.8,period:0.0337,initAngle:3.2,info:{distance:'0.48 AU',period:'124.9 days',rotation:'unknown',moons:0,desc:'A mini-Neptune.'}},
+    {name:'Kepler-90 g',color:0xddaa88,radius:0.8,orbitRadius:4.5,period:0.0588,initAngle:4,info:{distance:'0.71 AU',period:'210.6 days',rotation:'unknown',moons:0,desc:'A gas giant.'}},
+    {name:'Kepler-90 h',color:0xddbb88,radius:0.85,orbitRadius:5.5,period:0.092,initAngle:4.8,info:{distance:'1.01 AU',period:'331.6 days',rotation:'unknown',moons:0,desc:'The outermost planet — a gas giant.'}},
+    {name:'Kepler-90 i',color:0xdd9966,radius:0.15,orbitRadius:1.2,period:0.0185,initAngle:5.6,info:{distance:'0.12 AU',period:'14.4 days',rotation:'unknown',moons:0,desc:'The smallest planet, discovered by machine learning in 2017.'}}
   ];
 
+  // ============ SYSTEMS (galaxy-relative) ============
   const SYSTEMS_DATA = [
-    {
-      name: 'Solar System',
-      center: new V(-40, 0, 0),
-      zoomRadius: 75,
+    // Local neighborhood (around Sun at 700, 0, 500)
+    { name:'Solar System', center: new V(700, 0, 500), zoomRadius: 75,
       summary: 'Our home. A yellow dwarf star, 8 planets and 1 large moon — all within ~50 AU.',
-      stars: [{
-        name: 'The Sun', type: 'main-sequence', radius: 1.6, mass: 80,
-        info: { type: 'G-type main-sequence (G2V)', temp: '5,500 °C surface',
-                desc: "A yellow dwarf star at the centre of our solar system. Contains 99.8% of the system's mass and fuses hydrogen into helium in its core." }
-      }],
-      planets: PLANET_DATA
-    },
-    {
-      name: 'Proxima Centauri',
-      center: new V(-110, 0, 30),
-      zoomRadius: 22,
+      stars: [{ name:'The Sun', type:'main-sequence', radius:1.6, mass:80, info:{ type:'G-type main-sequence (G2V)', temp:'5,500 °C surface', desc:"A yellow dwarf star at the centre of our solar system. Contains 99.8% of the system's mass." }}],
+      planets: PLANET_DATA },
+    { name:'Proxima Centauri', center: new V(630, 0, 530), zoomRadius: 22,
       summary: 'The closest star to the Sun. A red dwarf hosting three confirmed planets — 4.24 light-years away.',
-      stars: [{
-        name: 'Proxima Centauri', type: 'red-dwarf', radius: 0.9, mass: 30,
-        info: { type: 'Red dwarf (M5.5Ve)', temp: '3,042 °C surface',
-                desc: 'The closest star to the Sun at 4.24 light-years. Much smaller and cooler than our Sun, it hosts three confirmed planets.' }
-      }],
-      planets: PROXIMA_PLANETS
-    },
-    {
-      name: 'Alpha Centauri',
-      center: new V(30, 0, -20),
-      zoomRadius: 30,
+      stars: [{ name:'Proxima Centauri', type:'red-dwarf', radius:0.9, mass:30, info:{ type:'Red dwarf (M5.5Ve)', temp:'3,042 °C surface', desc:'The closest star to the Sun at 4.24 light-years.' }}],
+      planets: PROXIMA_PLANETS },
+    { name:'Alpha Centauri', center: new V(770, 0, 480), zoomRadius: 30,
       summary: 'A binary of two Sun-like stars 4.37 light-years away — the closest Sun-like stars to us.',
       stars: [
-        { name: 'Alpha Centauri A', type: 'main-sequence', radius: 1.2, mass: 45,
-          orbitRadius: 1.8, orbitSpeed: 0.4, phase: 0,
-          info: { type: 'G2V yellow dwarf', temp: '5,790 °C surface',
-                  desc: 'The primary of the Alpha Centauri system — nearly identical in size and temperature to the Sun.' } },
-        { name: 'Alpha Centauri B', type: 'orange-dwarf', radius: 0.9, mass: 35,
-          orbitRadius: 1.8, orbitSpeed: 0.4, phase: Math.PI,
-          info: { type: 'K1V orange dwarf', temp: '5,260 °C surface',
-                  desc: 'The secondary of the Alpha Centauri A/B pair, slightly cooler and less massive than the Sun.' } }
-      ],
-      planets: []
-    },
-    {
-      name: 'Sirius',
-      center: new V(110, 0, -20),
-      zoomRadius: 30,
-      summary: 'The brightest star in Earth\'s night sky — a blue-white star and its white dwarf companion.',
+        { name:'Alpha Centauri A', type:'main-sequence', radius:1.2, mass:45, orbitRadius:1.8, orbitSpeed:0.4, phase:0, info:{ type:'G2V yellow dwarf', temp:'5,790 °C surface', desc:'The primary of the Alpha Centauri system — nearly identical to the Sun.' } },
+        { name:'Alpha Centauri B', type:'orange-dwarf', radius:0.9, mass:35, orbitRadius:1.8, orbitSpeed:0.4, phase:Math.PI, info:{ type:'K1V orange dwarf', temp:'5,260 °C surface', desc:'The secondary of the Alpha Centauri pair, slightly cooler than the Sun.' } }
+      ], planets: [] },
+    { name:'Sirius', center: new V(850, 0, 480), zoomRadius: 30,
+      summary: "The brightest star in Earth's night sky — a blue-white star and its white dwarf companion.",
       stars: [
-        { name: 'Sirius A', type: 'blue-star', radius: 1.4, mass: 60,
-          orbitRadius: 2.5, orbitSpeed: 0.2, phase: 0,
-          info: { type: 'A1V blue-white main sequence', temp: '9,940 °C surface',
-                  desc: 'The brightest star in the night sky. Twice the mass of the Sun and 25 times more luminous.' } },
-        { name: 'Sirius B', type: 'white-dwarf', radius: 0.35, mass: 30,
-          orbitRadius: 2.5, orbitSpeed: 0.2, phase: Math.PI,
-          info: { type: 'DA2 white dwarf', temp: '25,000 °C surface',
-                  desc: 'A white dwarf — the exposed core of a dead star, packing the mass of the Sun into a sphere the size of Earth.' } }
-      ],
-      planets: []
-    },
-    {
-      name: 'Tau Ceti',
-      center: new V(-90, 0, -70),
-      zoomRadius: 25,
+        { name:'Sirius A', type:'blue-star', radius:1.4, mass:60, orbitRadius:2.5, orbitSpeed:0.2, phase:0, info:{ type:'A1V blue-white main sequence', temp:'9,940 °C surface', desc:'The brightest star in the night sky. Twice the mass of the Sun.' } },
+        { name:'Sirius B', type:'white-dwarf', radius:0.35, mass:30, orbitRadius:2.5, orbitSpeed:0.2, phase:Math.PI, info:{ type:'DA2 white dwarf', temp:'25,000 °C surface', desc:'A white dwarf — the exposed core of a dead star, packing the mass of the Sun into a sphere the size of Earth.' } }
+      ], planets: [] },
+    { name:'Tau Ceti', center: new V(650, 0, 430), zoomRadius: 25,
       summary: 'A single Sun-like star 12 light-years away with a debris disk and candidate planets.',
-      stars: [{
-        name: 'Tau Ceti', type: 'main-sequence', radius: 1.3, mass: 70,
-        info: { type: 'G8V yellow dwarf', temp: '5,340 °C surface',
-                desc: 'A Sun-like star 12 light-years away with a prominent debris disk. At least four candidate planets have been detected.' }
-      }],
-      planets: TAU_CETI_PLANETS
-    },
-    {
-      name: 'Trappist-1',
-      center: new V(-80, 0, 120),
-      zoomRadius: 15,
+      stars: [{ name:'Tau Ceti', type:'main-sequence', radius:1.3, mass:70, info:{ type:'G8V yellow dwarf', temp:'5,340 °C surface', desc:'A Sun-like star 12 light-years away with a prominent debris disk.' }}],
+      planets: TAU_CETI_PLANETS },
+    { name:'Trappist-1', center: new V(660, 0, 620), zoomRadius: 15,
       summary: 'An ultra-cool red dwarf with 7 Earth-sized planets, 3 of them in the habitable zone — 40 light-years away.',
-      stars: [{
-        name: 'Trappist-1', type: 'red-dwarf', radius: 0.6, mass: 20,
-        info: { type: 'Ultracool red dwarf (M8V)', temp: '2,300 °C surface',
-                desc: 'Barely larger than Jupiter. Hosts seven Earth-sized planets, three in the habitable zone. The whole system would fit inside Mercury\'s orbit.' }
-      }],
-      planets: TRAPPIST_PLANETS
-    },
-    {
-      name: 'Betelgeuse',
-      center: new V(180, 0, 100),
-      zoomRadius: 25,
-      summary: 'A red supergiant in Orion — near the end of its life and destined for a supernova. Roughly 550 light-years away.',
-      stars: [{
-        name: 'Betelgeuse', type: 'red-giant', radius: 3.0, mass: 120,
-        info: { type: 'M1-2 Ia-ab red supergiant', temp: '3,500 °C surface',
-                desc: 'A red supergiant in Orion roughly 700 times the radius of the Sun. Already fusing heavier elements in its core, it will collapse into a supernova within the next ~100,000 years.' }
-      }],
-      planets: []
-    },
-    {
-      name: 'Rigel',
-      center: new V(-160, 0, -130),
-      zoomRadius: 22,
+      stars: [{ name:'Trappist-1', type:'red-dwarf', radius:0.6, mass:20, info:{ type:'Ultracool red dwarf (M8V)', temp:'2,300 °C surface', desc:'Barely larger than Jupiter. Hosts seven Earth-sized planets, three in the habitable zone.' }}],
+      planets: TRAPPIST_PLANETS },
+    { name:'Betelgeuse', center: new V(920, 0, 600), zoomRadius: 25,
+      summary: 'A red supergiant in Orion — near the end of its life and destined for a supernova. ~550 light-years away.',
+      stars: [{ name:'Betelgeuse', type:'red-giant', radius:3.0, mass:120, info:{ type:'M1-2 Ia-ab red supergiant', temp:'3,500 °C surface', desc:'A red supergiant in Orion roughly 700 times the radius of the Sun.' }}], planets: [] },
+    { name:'Rigel', center: new V(580, 0, 370), zoomRadius: 22,
       summary: 'A blue supergiant in Orion, roughly 120,000 times more luminous than the Sun — about 860 light-years away.',
-      stars: [{
-        name: 'Rigel', type: 'blue-star', radius: 2.2, mass: 100,
-        info: { type: 'B8 Ia blue supergiant', temp: '12,100 °C surface',
-                desc: 'A blue supergiant in Orion, one of the brightest stars in the Milky Way. Its intense ultraviolet radiation lights up the surrounding Witch Head Nebula.' }
-      }],
-      planets: []
-    },
-    {
-      name: "van Maanen's Star",
-      center: new V(110, 0, 60),
-      zoomRadius: 10,
-      summary: 'The closest single white dwarf to Earth — a dense stellar remnant 14 light-years away.',
-      stars: [{
-        name: "van Maanen's Star", type: 'white-dwarf', radius: 0.4, mass: 40,
-        info: { type: 'DZ8 white dwarf', temp: '6,200 °C surface',
-                desc: 'A white dwarf — the exposed core of a dead star. A teaspoon of its matter would weigh several tonnes on Earth.' }
-      }],
-      planets: []
-    }
+      stars: [{ name:'Rigel', type:'blue-star', radius:2.2, mass:100, info:{ type:'B8 Ia blue supergiant', temp:'12,100 °C surface', desc:'A blue supergiant in Orion, one of the brightest stars in the Milky Way.' }}], planets: [] },
+    { name:'Epsilon Eridani', center: new V(620, 0, 380), zoomRadius: 20,
+      summary: 'A young orange dwarf 10.5 light-years away with a gas giant planet and two asteroid belts.',
+      stars: [{ name:'Epsilon Eridani', type:'orange-dwarf', radius:1.1, mass:60, info:{ type:'K2V orange dwarf', temp:'5,080 °C surface', desc:'A young star 10.5 light-years away, roughly 800 million years old.' }}],
+      planets: EPS_ERI_PLANETS },
+    { name:'51 Pegasi', center: new V(800, 0, 650), zoomRadius: 22,
+      summary: "The first star found to host a planet around a Sun-like star — 50 light-years away. Home of the first exoplanet discovery.",
+      stars: [{ name:'51 Pegasi', type:'main-sequence', radius:1.3, mass:65, info:{ type:'G2.5V yellow dwarf', temp:'5,760 °C surface', desc:'A Sun-like star in Pegasus, 50 light-years away.' }}],
+      planets: PEG51_PLANETS },
+    { name:'61 Cygni', center: new V(1050, 0, 750), zoomRadius: 22,
+      summary: 'A binary pair of orange dwarfs 11.4 light-years away — famous for being the first star system to have its distance measured (1838).',
+      stars: [
+        { name:'61 Cygni A', type:'orange-dwarf', radius:0.9, mass:40, orbitRadius:1.2, orbitSpeed:0.3, phase:0, info:{ type:'K5V orange dwarf', temp:'4,400 °C surface', desc:'The primary of the 61 Cygni pair — the first star (besides the Sun) to have its distance measured.' } },
+        { name:'61 Cygni B', type:'orange-dwarf', radius:0.85, mass:38, orbitRadius:1.2, orbitSpeed:0.3, phase:Math.PI, info:{ type:'K7V orange dwarf', temp:'4,100 °C surface', desc:'The secondary of the 61 Cygni binary.' } }
+      ], planets: [] },
+    { name:'Vega', center: new V(1250, 0, -150), zoomRadius: 22,
+      summary: 'A bright blue-white star 25 light-years away, surrounded by a prominent debris disk.',
+      stars: [{ name:'Vega', type:'blue-star', radius:1.8, mass:80, info:{ type:'A0V blue-white main sequence', temp:'9,600 °C surface', desc:'A blue-white star 25 light-years away, surrounded by a dusty debris disk.' }}], planets: [] },
+    { name:'Arcturus', center: new V(200, 0, -350), zoomRadius: 25,
+      summary: 'A bright orange giant 37 light-years away — likely a star from a dwarf galaxy swallowed by the Milky Way.',
+      stars: [{ name:'Arcturus', type:'orange-giant', radius:2.2, mass:90, info:{ type:'K1.5 III orange giant', temp:'4,290 °C surface', desc:'An orange giant in Boötes, 37 light-years away. Likely a captured star from a dwarf galaxy.' }}], planets: [] },
+    { name:'Antares', center: new V(-550, 0, -100), zoomRadius: 30,
+      summary: 'A red supergiant 550 light-years away — the heart of Scorpius, around 700 times the Sun\'s radius.',
+      stars: [{ name:'Antares', type:'red-giant', radius:3.2, mass:130, info:{ type:'M1.5 Iab-Ib red supergiant', temp:'3,600 °C surface', desc:'A red supergiant in Scorpius, ~700 times the radius of the Sun.' }}], planets: [] },
+    { name:'Polaris', center: new V(100, 0, 1250), zoomRadius: 25,
+      summary: 'The North Star — a yellow supergiant Cepheid variable 433 light-years away, in a triple star system.',
+      stars: [{ name:'Polaris A', type:'yellow-giant', radius:2.0, mass:100, info:{ type:'F7 Ib yellow supergiant', temp:'5,700 °C surface', desc:'A Cepheid variable in Ursa Minor. Its steady position has guided travellers for millennia.' }}], planets: [] },
+    { name:'Aldebaran', center: new V(400, 0, 200), zoomRadius: 25,
+      summary: 'The eye of Taurus — an orange giant 65 light-years away, about 44 times the Sun\'s radius.',
+      stars: [{ name:'Aldebaran', type:'orange-giant', radius:2.0, mass:85, info:{ type:'K5 III orange giant', temp:'3,910 °C surface', desc:'An orange giant in Taurus, the "eye of the bull".' }}], planets: [] },
+    { name:'Capella', center: new V(400, 0, -200), zoomRadius: 22,
+      summary: 'A quadruple system 43 light-years away — the two brightest stars are both yellow giants orbiting each other.',
+      stars: [
+        { name:'Capella Aa', type:'yellow-giant', radius:1.5, mass:60, orbitRadius:1.2, orbitSpeed:0.35, phase:0, info:{ type:'G8 III yellow giant', temp:'5,700 °C surface', desc:'The primary of the Capella binary — one of the brightest yellow giants in the sky.' } },
+        { name:'Capella Ab', type:'yellow-giant', radius:1.3, mass:55, orbitRadius:1.2, orbitSpeed:0.35, phase:Math.PI, info:{ type:'G0 III yellow giant', temp:'5,750 °C surface', desc:'The secondary of the Capella pair.' } }
+      ], planets: [] },
+    { name:'HD 10180', center: new V(900, 0, -400), zoomRadius: 22,
+      summary: 'A Sun-like star 127 light-years away with at least six confirmed planets — one of the richest planetary systems known.',
+      stars: [{ name:'HD 10180', type:'main-sequence', radius:1.2, mass:65, info:{ type:'G1V yellow dwarf', temp:'5,800 °C surface', desc:'A Sun-like star 127 light-years away in Hydrus with at least six planets.' }}],
+      planets: HD10180_PLANETS },
+    { name:'Kepler-90', center: new V(-300, 0, 700), zoomRadius: 20,
+      summary: 'An 8-planet system 2,790 light-years away — the same number of planets as our solar system, all packed within 1 AU.',
+      stars: [{ name:'Kepler-90', type:'main-sequence', radius:1.2, mass:60, info:{ type:'G-type main sequence', temp:'5,500 °C surface', desc:'A Sun-like star 2,790 light-years away, with 8 known planets packed into a space smaller than Earth\'s orbit.' }}],
+      planets: KEPLER90_PLANETS }
   ];
 
-  const EXOTIC_DATA = [
-    {
-      name: 'Neutron star',
-      type: 'neutronStar',
-      position: new V(280, 0, -80),
-      fabricMass: 140,
-      zoomRadius: 18,
-      info: {
-        type: 'Pulsar (rotating neutron star)',
-        temp: '~600,000 °C surface',
-        desc: 'A collapsed stellar core — roughly 1.4 solar masses packed into a sphere only about 20 km across. A teaspoon of its matter would weigh billions of tonnes on Earth. Rapidly spinning magnetic poles sweep beams of radiation through space, seen as regular radio pulses.'
-      }
-    },
-    {
-      name: 'Black hole',
-      type: 'blackHole',
-      position: new V(-280, 0, 60),
-      fabricMass: 320,
-      zoomRadius: 22,
-      info: {
-        type: 'Stellar-mass black hole (rotating)',
-        temp: 'No emission from the horizon',
-        desc: 'A region where gravity is so strong that nothing — not even light — can escape. The bright ring is the accretion disk of superheated matter spiralling in and radiating away its energy. The dark sphere is the event horizon.'
-      }
-    }
+  const NEBULAE_DATA = [
+    { name:'Orion Nebula', position: new V(900, 30, 700), color:0xff6688, size:60, info:{ type:'Emission nebula', distance:'1,344 ly', desc:'A stellar nursery in the constellation Orion where new stars are actively forming.' } },
+    { name:'Crab Nebula', position: new V(760, -15, 380), color:0x88aaff, size:35, info:{ type:'Supernova remnant', distance:'6,500 ly', desc:'The remnant of a supernova observed in 1054 AD. Contains a pulsar at its heart.' } },
+    { name:'Eagle Nebula', position: new V(1050, 30, 300), color:0x66ffcc, size:50, info:{ type:'Emission nebula', distance:'5,700 ly', desc:'Home to the iconic Pillars of Creation — dense columns of gas where stars are forming.' } },
+    { name:'Helix Nebula', position: new V(400, -20, 750), color:0x44ffaa, size:40, info:{ type:'Planetary nebula', distance:'655 ly', desc:'The glowing shell of gas shed by a dying Sun-like star.' } },
+    { name:'Carina Nebula', position: new V(300, 15, -400), color:0xffaa66, size:70, info:{ type:'Emission nebula', distance:'8,500 ly', desc:'A vast star-forming region containing Eta Carinae, one of the most massive stars known.' } },
+    { name:'Lagoon Nebula', position: new V(-100, 0, 500), color:0xff4488, size:50, info:{ type:'Emission nebula', distance:'4,100 ly', desc:'A giant interstellar cloud in Sagittarius, visible to the naked eye.' } },
+    { name:'Rosette Nebula', position: new V(1150, -20, 400), color:0xff88aa, size:45, info:{ type:'Emission nebula', distance:'5,200 ly', desc:'A beautiful ring-shaped H II region with a young star cluster at its centre.' } }
   ];
 
-  // ======================= SOLAR BUILD =======================
+  const EXTRA_BLACK_HOLES = [
+    { name:'Cygnus X-1', position: new V(850, 0, 650), zoomRadius: 15, info:{ type:'Stellar-mass black hole', temp:'~21 solar masses', desc:'The first black hole ever identified (1964). In orbit with a blue supergiant companion star.' } },
+    { name:'V616 Monocerotis', position: new V(500, 0, 450), zoomRadius: 15, info:{ type:'Stellar-mass black hole', temp:'~6 solar masses', desc:'A black hole in a binary system about 3,000 light-years away.' } },
+    { name:'Neutron star', type:'neutronStar', position: new V(280, 0, -80), zoomRadius: 18, info:{ type:'Pulsar (rotating neutron star)', temp:'~600,000 °C surface', desc:'A collapsed stellar core — 1.4 solar masses packed into a 20 km sphere. A teaspoon of its matter would weigh billions of tonnes on Earth.' } },
+    { name:'Black hole', type:'blackHole', position: new V(-280, 0, 60), zoomRadius: 22, info:{ type:'Stellar-mass black hole (rotating)', temp:'No emission from the horizon', desc:'A region where gravity is so strong that nothing — not even light — can escape.' } }
+  ];
+
+  const SGR_A_DATA = {
+    name: 'Sagittarius A*', position: new V(0, 0, 0), zoomRadius: 60,
+    info: { type: 'Supermassive black hole', temp: '~4.3 million solar masses',
+      desc: 'The supermassive black hole at the centre of the Milky Way. Roughly 4.3 million times the mass of the Sun, with an event horizon about 24 million km across. Everything in the galaxy orbits around it at roughly 26,000 light-years distance.' }
+  };
+
+  // ============ BUILD ============
   function buildFabric(){
-    const segments = 80;
-    const size = 560;
-    const half = size / 2;
-    const step = size / segments;
-
+    const segments = 100, size = 900, half = size/2, step = size/segments;
     const verts = [];
-    for (let i = 0; i <= segments; i++){
-      const z = -half + i * step;
-      for (let j = 0; j < segments; j++){
-        const x1 = -half + j * step;
-        const x2 = x1 + step;
-        verts.push(x1, 0, z, x2, 0, z);
-      }
-    }
-    for (let i = 0; i <= segments; i++){
-      const x = -half + i * step;
-      for (let j = 0; j < segments; j++){
-        const z1 = -half + j * step;
-        const z2 = z1 + step;
-        verts.push(x, 0, z1, x, 0, z2);
-      }
-    }
-
-    const geo = new THREE.BufferGeometry();
+    for(let i=0;i<=segments;i++){ const z=-half+i*step; for(let j=0;j<segments;j++){ const x1=-half+j*step, x2=x1+step; verts.push(x1,0,z,x2,0,z); } }
+    for(let i=0;i<=segments;i++){ const x=-half+i*step; for(let j=0;j<segments;j++){ const z1=-half+j*step, z2=z1+step; verts.push(x,0,z1,x,0,z2); } }
+    const geo=new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-
-    const colors = new Float32Array(verts.length);
-    for (let i = 0; i < verts.length / 3; i++){
-      colors[i*3] = 0.25; colors[i*3+1] = 0.75; colors[i*3+2] = 0.94;
-    }
+    const colors=new Float32Array(verts.length);
+    for(let i=0;i<verts.length/3;i++){ colors[i*3]=0.25; colors[i*3+1]=0.75; colors[i*3+2]=0.94; }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false });
-
-    const mesh = new THREE.LineSegments(geo, mat);
-    mesh.position.y = -1;
-    mesh.renderOrder = -1;
-    solarRoot.add(mesh);
-
-    SOLAR.fabric = { mesh, geo, base: new Float32Array(verts), colors };
+    const mesh=new THREE.LineSegments(geo, new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.4,depthWrite:false}));
+    mesh.position.y=-1; mesh.renderOrder=-1; solarRoot.add(mesh);
+    SOLAR.fabric={mesh,geo,base:new Float32Array(verts),colors};
+  }
+  function updateFabric(){
+    if(!SOLAR.fabric) return;
+    const {geo,base}=SOLAR.fabric, pos=geo.attributes.position, col=geo.attributes.color;
+    const masses=[];
+    for(const sys of SOLAR.systems){ for(const star of sys.stars){ masses.push({x:sys.data.center.x+star.group.position.x, z:sys.data.center.z+star.group.position.z, mass:star.data.mass||40}); }
+      for(const p of sys.planets){ masses.push({x:sys.data.center.x+p.group.position.x, z:sys.data.center.z+p.group.position.z, mass:p.mass}); } }
+    for(const ex of SOLAR.exoticBodies){ masses.push({x:ex.data.position.x, z:ex.data.position.z, mass:ex.data.fabricMass||200}); }
+    masses.push({x:0, z:0, mass:800}); // Sgr A*
+    const mc=masses.length;
+    for(let i=0;i<pos.count;i++){
+      const x=base[i*3], z=base[i*3+2]; let dip=0;
+      for(let mi=0;mi<mc;mi++){ const m=masses[mi]; const dx=x-m.x, dz=z-m.z; dip-=m.mass/(dx*dx+dz*dz+8); }
+      if(dip<-45) dip=-45;
+      pos.setY(i, dip);
+      const depth=Math.min(1, -dip/32);
+      col.setXYZ(i, 0.25+depth*0.7, 0.75-depth*0.65, 0.94-depth*0.85);
+    }
+    pos.needsUpdate=true; col.needsUpdate=true;
   }
 
-  function updateFabric(){
-    if (!SOLAR.fabric) return;
-    const { geo, base } = SOLAR.fabric;
-    const pos = geo.attributes.position;
-    const col = geo.attributes.color;
-
-    const masses = [];
-    for (const sys of SOLAR.systems){
-      for (const star of sys.stars){
-        masses.push({
-          x: sys.data.center.x + star.group.position.x,
-          z: sys.data.center.z + star.group.position.z,
-          mass: star.data.mass || 40
-        });
-      }
-      for (const p of sys.planets){
-        masses.push({
-          x: sys.data.center.x + p.group.position.x,
-          z: sys.data.center.z + p.group.position.z,
-          mass: p.mass
-        });
+  function buildGalaxyDisk(){
+    const positions=[], colors=[];
+    // 2 main spiral arms
+    for(let arm=0; arm<2; arm++){
+      const armOffset = arm*Math.PI;
+      for(let i=0;i<3500;i++){
+        const t = Math.pow(i/3500, 0.65);
+        const angle = armOffset + t*Math.PI*3.2;
+        const r = t*1600;
+        const spread = 40 + t*140;
+        const perpX = -Math.sin(angle), perpZ = Math.cos(angle);
+        const s = (Math.random()-0.5)*spread;
+        const x = Math.cos(angle)*r + perpX*s;
+        const z = Math.sin(angle)*r + perpZ*s;
+        const y = (Math.random()-0.5)*(15+t*40);
+        positions.push(x, y, z);
+        const c = 0.5 + Math.random()*0.5;
+        colors.push(c*0.7, c*0.85, c);
       }
     }
-    for (const ex of SOLAR.exoticBodies){
-      masses.push({ x: ex.data.position.x, z: ex.data.position.z, mass: ex.data.fabricMass });
+    // Central bulge
+    for(let i=0;i<1200;i++){
+      const r = Math.pow(Math.random(), 2)*320;
+      const theta = Math.random()*Math.PI*2;
+      const phi = Math.acos(2*Math.random()-1);
+      positions.push(Math.sin(phi)*Math.cos(theta)*r, Math.cos(phi)*r*0.35, Math.sin(phi)*Math.sin(theta)*r);
+      const c = 0.7+Math.random()*0.3;
+      colors.push(c, c*0.8, c*0.5);
     }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({size:4, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:0.55, depthWrite:false, blending:THREE.AdditiveBlending});
+    const points = new THREE.Points(geo, mat);
+    solarRoot.add(points);
+    SOLAR.galaxyPoints = mat;
+  }
 
-    const mc = masses.length;
-    for (let i = 0; i < pos.count; i++){
-      const x = base[i*3];
-      const z = base[i*3+2];
-      let dip = 0;
-      for (let mi = 0; mi < mc; mi++){
-        const m = masses[mi];
-        const dx = x - m.x;
-        const dz = z - m.z;
-        dip -= m.mass / (dx*dx + dz*dz + 5);
-      }
-      if (dip < -40) dip = -40;
-      pos.setY(i, dip);
-
-      const depth = Math.min(1, -dip / 28);
-      col.setXYZ(i,
-        0.25 + depth * 0.7,
-        0.75 - depth * 0.65,
-        0.94 - depth * 0.85
-      );
+  function buildNebula(data){
+    const count = 500;
+    const positions = new Float32Array(count*3), colors = new Float32Array(count*3);
+    const c = new THREE.Color(data.color);
+    for(let i=0;i<count;i++){
+      const r = Math.pow(Math.random(), 0.6)*data.size;
+      const theta = Math.random()*Math.PI*2;
+      const phi = Math.acos(2*Math.random()-1);
+      positions[i*3] = Math.sin(phi)*Math.cos(theta)*r;
+      positions[i*3+1] = Math.cos(phi)*r*0.5;
+      positions[i*3+2] = Math.sin(phi)*Math.sin(theta)*r;
+      const bright = 0.5+Math.random()*0.5;
+      colors[i*3]=c.r*bright; colors[i*3+1]=c.g*bright; colors[i*3+2]=c.b*bright;
     }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({size:8, sizeAttenuation:true, vertexColors:true, transparent:true, opacity:0.45, depthWrite:false, blending:THREE.AdditiveBlending});
+    const points = new THREE.Points(geo, mat);
+    points.position.copy(data.position);
 
-    pos.needsUpdate = true;
-    col.needsUpdate = true;
+    // Invisible pickable sphere for easy clicking
+    const pickSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(data.size*0.9, 12, 8),
+      new THREE.MeshBasicMaterial({visible:false})
+    );
+    points.add(pickSphere);
+    pickSphere.userData.nebula = data;
+
+    const meta = { name:data.name, isNebula:true, systemIndex:-1, focusTarget:points, zoomRadius:data.size*2, info:data.info };
+    pickSphere.userData.solar = meta;
+    points.userData.nebula = data;
+    points.userData.solar = meta;
+
+    solarRoot.add(points);
+    SOLAR.nebulae.push({data, points});
   }
 
   function buildStarSystem(sysData, sysIdx){
     const sysGroup = new THREE.Group();
     sysGroup.position.copy(sysData.center);
     solarRoot.add(sysGroup);
-
-    // Build stars
     const starObjs = [];
-    for (const sd of sysData.stars){
+    for(const sd of sysData.stars){
       const starGroup = createStar(sd.type, sd.radius);
       sysGroup.add(starGroup);
-
-      // Initial position if binary
-      if (sd.orbitRadius){
-        const angle = sd.phase || 0;
-        starGroup.position.x = Math.cos(angle) * sd.orbitRadius;
-        starGroup.position.z = Math.sin(angle) * sd.orbitRadius;
-      }
-
-      const starMeta = {
-        name: sd.name,
-        isStar: true,
-        systemIndex: sysIdx,
-        focusTarget: starGroup,
-        starRadius: sd.radius,
-        info: sd.info
-      };
-      starGroup.userData.solar = starMeta;
-      starGroup.traverse(child => {
-        if (child.isMesh || child.isPoints) child.userData.solar = starMeta;
-      });
-
-      starObjs.push({
-        group: starGroup,
-        data: sd,
-        phase: sd.phase || 0,
-        orbitRadius: sd.orbitRadius || 0,
-        orbitSpeed: sd.orbitSpeed || 0.4
-      });
+      if(sd.orbitRadius){ const angle = sd.phase||0; starGroup.position.x = Math.cos(angle)*sd.orbitRadius; starGroup.position.z = Math.sin(angle)*sd.orbitRadius; }
+      const meta = { name:sd.name, isStar:true, systemIndex:sysIdx, focusTarget:starGroup, starRadius:sd.radius, info:sd.info };
+      starGroup.userData.solar = meta;
+      starGroup.traverse(c => { if(c.isMesh||c.isPoints) c.userData.solar = meta; });
+      starObjs.push({group:starGroup, data:sd, phase:sd.phase||0, orbitRadius:sd.orbitRadius||0, orbitSpeed:sd.orbitSpeed||0.4});
     }
-
-    // Build planets
     const planets = [];
-    if (sysData.planets){
-      for (const p of sysData.planets){
+    if(sysData.planets){
+      for(const p of sysData.planets){
         const planetGroup = new THREE.Group();
         sysGroup.add(planetGroup);
-
-        const mesh = new THREE.Mesh(
-          new THREE.SphereGeometry(p.radius, 24, 18),
-          new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.72, metalness: 0.05, emissive: p.color, emissiveIntensity: 0.1 })
-        );
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 20, 14),
+          new THREE.MeshStandardMaterial({color:p.color, roughness:0.72, metalness:0.05, emissive:p.color, emissiveIntensity:0.1}));
         planetGroup.add(mesh);
-
-        const planetMeta = {
-          name: p.name, planet: true, systemIndex: sysIdx,
-          focusTarget: planetGroup, planetRadius: p.radius, info: p.info
-        };
-        mesh.userData.solar = planetMeta;
-
+        const meta = { name:p.name, planet:true, systemIndex:sysIdx, focusTarget:planetGroup, planetRadius:p.radius, info:p.info };
+        mesh.userData.solar = meta;
         const pts = [];
-        for (let i = 0; i <= 128; i++){
-          const a = i / 128 * Math.PI * 2;
-          pts.push(new THREE.Vector3(Math.cos(a) * p.orbitRadius, 0, Math.sin(a) * p.orbitRadius));
-        }
-        const orbitLine = new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(pts),
-          new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.22 })
-        );
+        for(let i=0;i<=128;i++){ const a=i/128*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*p.orbitRadius, 0, Math.sin(a)*p.orbitRadius)); }
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:p.color, transparent:true, opacity:0.22}));
         sysGroup.add(orbitLine);
-
-        if (p.ring){
-          const ring = new THREE.Mesh(
-            new THREE.RingGeometry(p.radius * 1.4, p.radius * 2.2, 64),
-            new THREE.MeshBasicMaterial({ color: 0xd8c088, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
-          );
-          ring.rotation.x = Math.PI / 2 + 0.15;
-          planetGroup.add(ring);
-        }
-
+        if(p.ring){ const ring = new THREE.Mesh(new THREE.RingGeometry(p.radius*1.4, p.radius*2.2, 64), new THREE.MeshBasicMaterial({color:0xd8c088, side:THREE.DoubleSide, transparent:true, opacity:0.55})); ring.rotation.x = Math.PI/2+0.15; planetGroup.add(ring); }
         const moons = [];
-        if (p.moons){
-          for (const m of p.moons){
-            const moonMesh = new THREE.Mesh(
-              new THREE.SphereGeometry(m.radius, 14, 10),
-              new THREE.MeshStandardMaterial({ color: m.color, roughness: 0.85, emissive: m.color, emissiveIntensity: 0.08 })
-            );
-            planetGroup.add(moonMesh);
-
-            const moonMeta = {
-              name: m.name, moon: true, systemIndex: sysIdx,
-              focusTarget: moonMesh,
-              info: Object.assign({ parent: p.name }, m.info)
-            };
-            moonMesh.userData.solar = moonMeta;
-
-            moons.push({
-              mesh: moonMesh, data: m,
-              orbitRadius: m.orbitRadius, speed: m.speed,
-              angle: Math.random() * Math.PI * 2
-            });
-          }
-        }
-
-        planetGroup.position.x = Math.cos(p.initAngle) * p.orbitRadius;
-        planetGroup.position.z = Math.sin(p.initAngle) * p.orbitRadius;
-
-        planets.push({
-          data: p, mesh, group: planetGroup, moons,
-          orbitRadius: p.orbitRadius,
-          angle: p.initAngle,
-          angularSpeed: 0.6 / Math.pow(p.period, 0.4),
-          mass: 3 + p.radius * 6,
-          orbitLine
-        });
+        if(p.moons){ for(const m of p.moons){
+          const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.radius, 12, 10), new THREE.MeshStandardMaterial({color:m.color, roughness:0.85, emissive:m.color, emissiveIntensity:0.08}));
+          planetGroup.add(moonMesh);
+          const mMeta = { name:m.name, moon:true, systemIndex:sysIdx, focusTarget:moonMesh, info:Object.assign({parent:p.name}, m.info) };
+          moonMesh.userData.solar = mMeta;
+          moons.push({mesh:moonMesh, data:m, orbitRadius:m.orbitRadius, speed:m.speed, angle:Math.random()*Math.PI*2});
+        } }
+        planetGroup.position.x = Math.cos(p.initAngle)*p.orbitRadius;
+        planetGroup.position.z = Math.sin(p.initAngle)*p.orbitRadius;
+        planets.push({data:p, mesh, group:planetGroup, moons, orbitRadius:p.orbitRadius, angle:p.initAngle, angularSpeed:0.6/Math.pow(p.period, 0.4), mass:3+p.radius*6, orbitLine});
       }
     }
-
-    SOLAR.systems.push({
-      data: sysData, group: sysGroup, stars: starObjs,
-      starMass: sysData.starMass || 80, planets
-    });
+    SOLAR.systems.push({data:sysData, group:sysGroup, stars:starObjs, planets});
   }
 
   function buildExoticBodies(){
     SOLAR.exoticBodies = [];
-    EXOTIC_DATA.forEach((data, i) => {
+    EXTRA_BLACK_HOLES.forEach((data, i) => {
       const group = new THREE.Group();
       group.position.copy(data.position);
       solarRoot.add(group);
-
       let bodyGroup;
-      if (data.type === 'neutronStar') bodyGroup = createNeutronStar();
-      else if (data.type === 'blackHole') bodyGroup = createBlackHole();
-      else return;
-
+      if(data.type === 'neutronStar') bodyGroup = createNeutronStar();
+      else if(data.type === 'blackHole') bodyGroup = createBlackHole(1);
+      else bodyGroup = createBlackHole(1);
       group.add(bodyGroup);
-
-      const meta = {
-        name: data.name,
-        isExotic: true,
-        systemIndex: SOLAR.systems.length + i,
-        focusTarget: group,
-        zoomRadius: data.zoomRadius,
-        info: data.info
-      };
+      const meta = { name:data.name, isExotic:true, systemIndex:-1, focusTarget:group, zoomRadius:data.zoomRadius, info:data.info };
       bodyGroup.userData.solar = meta;
-      bodyGroup.traverse(child => {
-        if (child.isMesh) child.userData.solar = meta;
-      });
-
-      SOLAR.exoticBodies.push({ data, group, bodyGroup });
+      bodyGroup.traverse(c => { if(c.isMesh) c.userData.solar = meta; });
+      SOLAR.exoticBodies.push({data, group, bodyGroup, fabricMass:200});
     });
+  }
+
+  function buildSgrA(){
+    const group = new THREE.Group();
+    group.position.copy(SGR_A_DATA.position);
+    solarRoot.add(group);
+    const bodyGroup = createSgrA();
+    group.add(bodyGroup);
+    const meta = { name:SGR_A_DATA.name, isExotic:true, systemIndex:-1, focusTarget:group, zoomRadius:SGR_A_DATA.zoomRadius, info:SGR_A_DATA.info };
+    bodyGroup.userData.solar = meta;
+    bodyGroup.traverse(c => { if(c.isMesh) c.userData.solar = meta; });
+    SOLAR.sgrA = bodyGroup;
+    SOLAR.sgrAGroup = group;
+  }
+
+  function buildSunMarker(){
+    const marker = new THREE.Mesh(
+      new THREE.RingGeometry(35, 45, 64),
+      new THREE.MeshBasicMaterial({color:0x4cc9f0, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending})
+    );
+    marker.rotation.x = Math.PI/2;
+    marker.position.copy(SUN_GALAXY_POS);
+    marker.renderOrder = -0.5;
+    solarRoot.add(marker);
+    SOLAR.sunMarker = marker;
   }
 
   function buildSolarSystem(){
     clearRoot(solarRoot);
-    SOLAR.systems = [];
-    SOLAR.exoticBodies = [];
-    SOLAR.fabric = null;
-
+    SOLAR.systems = []; SOLAR.exoticBodies = []; SOLAR.nebulae = []; SOLAR.sgrA = null; SOLAR.fabric = null;
     buildFabric();
-    for (let i = 0; i < SYSTEMS_DATA.length; i++) buildStarSystem(SYSTEMS_DATA[i], i);
+    buildGalaxyDisk();
+    for(let i=0;i<SYSTEMS_DATA.length;i++) buildStarSystem(SYSTEMS_DATA[i], i);
     buildExoticBodies();
-
-    defR = 380;
+    buildSgrA();
+    for(let i=0;i<NEBULAE_DATA.length;i++) buildNebula(NEBULAE_DATA[i]);
+    buildSunMarker();
+    defR = 2500;
   }
 
   function updateSolar(dt){
     const speed = +slider.value;
     const time = performance.now() / 1000;
-
-    for (const sys of SOLAR.systems){
-      // Stars (may be binary)
-      for (const star of sys.stars){
-        if (star.orbitRadius > 0){
-          const angle = star.phase + time * star.orbitSpeed;
-          star.group.position.x = Math.cos(angle) * star.orbitRadius;
-          star.group.position.z = Math.sin(angle) * star.orbitRadius;
-        }
+    for(const sys of SOLAR.systems){
+      for(const star of sys.stars){
+        if(star.orbitRadius > 0){ const angle = star.phase + time*star.orbitSpeed; star.group.position.x = Math.cos(angle)*star.orbitRadius; star.group.position.z = Math.sin(angle)*star.orbitRadius; }
         animateStar(star.group, time, dt);
       }
-
-      // Planets
-      if (speed > 0.01){
-        for (const p of sys.planets){
+      if(speed > 0.01){
+        for(const p of sys.planets){
           p.angle += p.angularSpeed * speed * dt;
-          p.group.position.x = Math.cos(p.angle) * p.orbitRadius;
-          p.group.position.z = Math.sin(p.angle) * p.orbitRadius;
-          p.mesh.rotation.y += 0.4 * speed * dt;
-
-          for (const m of p.moons){
-            m.angle += m.speed * speed * dt * 0.5;
-            m.mesh.position.x = Math.cos(m.angle) * m.orbitRadius;
-            m.mesh.position.z = Math.sin(m.angle) * m.orbitRadius;
-          }
+          p.group.position.x = Math.cos(p.angle)*p.orbitRadius;
+          p.group.position.z = Math.sin(p.angle)*p.orbitRadius;
+          p.mesh.rotation.y += 0.4*speed*dt;
+          for(const m of p.moons){ m.angle += m.speed*speed*dt*0.5; m.mesh.position.x = Math.cos(m.angle)*m.orbitRadius; m.mesh.position.z = Math.sin(m.angle)*m.orbitRadius; }
         }
       }
     }
-
-    animateExotic(dt * Math.max(speed, 0.35), time);
-
-    if (SOLAR.showFabric) updateFabric();
-  }
-
-  // ======================= SOLAR INFO & FOCUS =======================
-  function showSolarInfo(info){
-    if (!info) return;
-    if (info.isExotic){
-      showCard(info.name, [
-        ['Type', info.info.type],
-        ['Note', info.info.temp]
-      ], info.info.desc);
-    } else if (info.isStar){
-      showCard(info.name, [
-        ['Type', info.info.type],
-        ['Surface temp', info.info.temp]
-      ], info.info.desc);
-    } else if (info.planet){
-      showCard(info.name, [
-        ['Distance from star', info.info.distance],
-        ['Orbital period', info.info.period],
-        ['Rotation', info.info.rotation],
-        ['Moons', info.info.moons]
-      ], info.info.desc);
-    } else if (info.moon){
-      showCard(info.name, [
-        ['Orbits', info.info.parent],
-        ['Orbital period', info.info.period],
-        ['Diameter', info.info.diameter]
-      ], info.info.desc);
+    animateExotic(dt*Math.max(speed, 0.35), time);
+    if(SOLAR.showFabric) updateFabric();
+    // Sun marker opacity based on zoom
+    if(SOLAR.sunMarker){
+      const op = clamp((cam.radius - 400) / 800, 0, 0.75);
+      SOLAR.sunMarker.material.opacity = op;
+      SOLAR.sunMarker.visible = op > 0.02;
     }
   }
 
+  // ============ FOCUS ============
+  function showSolarInfo(info){
+    if(!info) return;
+    if(info.isNebula){ showCard(info.name, [['Type', info.info.type],['Distance', info.info.distance]], info.info.desc); }
+    else if(info.isExotic){ showCard(info.name, [['Type', info.info.type],['Mass', info.info.temp||info.info.mass||'—']], info.info.desc); }
+    else if(info.isStar){ showCard(info.name, [['Type', info.info.type],['Surface temp', info.info.temp]], info.info.desc); }
+    else if(info.planet){ showCard(info.name, [['Distance', info.info.distance],['Orbital period', info.info.period],['Rotation', info.info.rotation],['Moons', info.info.moons]], info.info.desc); }
+    else if(info.moon){ showCard(info.name, [['Orbits', info.info.parent],['Orbital period', info.info.period],['Diameter', info.info.diameter]], info.info.desc); }
+  }
   function focusSolar(body){
     const info = body.userData.solar;
-    if (!info) return;
-
-    if (info.systemIndex !== undefined){
-      SOLAR.currentSystem = info.systemIndex;
-      updateSolarChips();
-    }
-
+    if(!info) return;
+    SOLAR.currentDest = 'obj';
+    updateSolarChips();
     focused = info.focusTarget;
-
-    if (info.isExotic){
-      goal.radius = info.zoomRadius || 20;
-    } else if (info.isStar){
-      goal.radius = Math.max(8, (info.starRadius || 1) * 8);
-    } else if (info.planet){
-      goal.radius = Math.max(6, (info.planetRadius || 0.5) * 10);
-    } else if (info.moon){
-      goal.radius = 1.5;
-    }
-
+    if(info.isNebula) goal.radius = info.zoomRadius;
+    else if(info.isExotic) goal.radius = info.zoomRadius||20;
+    else if(info.isStar) goal.radius = Math.max(8, (info.starRadius||1)*8);
+    else if(info.planet) goal.radius = Math.max(6, (info.planetRadius||0.5)*10);
+    else if(info.moon) goal.radius = 1.5;
     showSolarInfo(info);
   }
-
-  function focusSystemView(idx){
+  function focusDest(dest){
     focused = null;
-    SOLAR.currentSystem = idx;
+    SOLAR.currentDest = dest;
     updateSolarChips();
-
-    if (idx === -1){
+    if(dest === 'overview'){
       goal.target.set(0, 0, 0);
-      goal.radius = 380;
-      showCard('Our galactic neighborhood', [
-        ['Systems', '9 systems + 2 exotic objects'],
-        ['Span', '~50 light-years (compressed)'],
-        ['Galaxy', 'Milky Way']
-      ], 'All destinations here live within our own galaxy — a compressed map of our local stellar neighborhood. Tap a chip or click any body to zoom in.');
+      goal.radius = 2500;
+      showCard('The Milky Way', [
+        ['Galaxy', 'Barred spiral · SBbc'],
+        ['Diameter', '~100,000 light-years'],
+        ['Stars', '~200 billion'],
+        ['Age', '~13.6 billion years']
+      ], 'Our home galaxy. The Solar System sits about 26,000 light-years from the centre, in the Orion Arm. Everything in this view lives within our galaxy — from the familiar neighbourhood to the supermassive black hole at its heart.');
       return;
     }
-
-    if (idx < SOLAR.systems.length){
+    if(dest === 'local'){
+      goal.target.copy(SUN_GALAXY_POS);
+      goal.radius = 400;
+      showCard('Local neighborhood', [
+        ['Center', 'The Sun'],
+        ['Radius', '~15 light-years'],
+        ['Content', 'Nearby stars & nebulae']
+      ], 'A compressed view of the Sun\'s local neighborhood. Most of the nearby systems shown are within 50 light-years of Earth.');
+      return;
+    }
+    if(dest === 'sgr'){
+      goal.target.copy(SGR_A_DATA.position);
+      goal.radius = SGR_A_DATA.zoomRadius;
+      showSolarInfo({name:SGR_A_DATA.name, isExotic:true, info:SGR_A_DATA.info});
+      return;
+    }
+    if(dest.startsWith('sys:')){
+      const idx = parseInt(dest.slice(4), 10);
       const sys = SOLAR.systems[idx];
-      if (!sys) return;
+      if(!sys) return;
       goal.target.copy(sys.data.center);
       goal.radius = sys.data.zoomRadius || 25;
-      const starNames = sys.data.stars.map(s => s.name).join(' + ');
-      const isBinary = sys.data.stars.length > 1;
       const planetCount = sys.data.planets ? sys.data.planets.length : 0;
       showCard(sys.data.name, [
-        ['Type', isBinary ? 'Binary star system' : 'Single star system'],
-        ['Stars', starNames],
+        ['Type', sys.data.stars.length > 1 ? 'Binary star system' : 'Single star system'],
+        ['Stars', sys.data.stars.map(s => s.name).join(' + ')],
         ['Planets', planetCount]
-      ], sys.data.summary || 'A stellar system in our local neighborhood.');
+      ], sys.data.summary);
       return;
     }
-
-    const exIdx = idx - SOLAR.systems.length;
-    const ex = SOLAR.exoticBodies[exIdx];
-    if (!ex) return;
-    goal.target.copy(ex.data.position);
-    goal.radius = ex.data.zoomRadius;
-    showSolarInfo({
-      name: ex.data.name,
-      isExotic: true,
-      info: ex.data.info
-    });
+    if(dest.startsWith('ex:')){
+      const idx = parseInt(dest.slice(3), 10);
+      const ex = SOLAR.exoticBodies[idx];
+      if(!ex) return;
+      goal.target.copy(ex.data.position);
+      goal.radius = ex.data.zoomRadius;
+      showSolarInfo({name:ex.data.name, isExotic:true, info:ex.data.info});
+      return;
+    }
+    if(dest.startsWith('neb:')){
+      const idx = parseInt(dest.slice(4), 10);
+      const neb = SOLAR.nebulae[idx];
+      if(!neb) return;
+      goal.target.copy(neb.data.position);
+      goal.radius = neb.data.size * 2.5;
+      showSolarInfo({name:neb.data.name, isNebula:true, info:neb.data.info});
+      return;
+    }
   }
-
   function updateSolarChips(){
-    document.querySelectorAll('#solarSystems [data-sys]').forEach(b => {
-      b.setAttribute('aria-pressed', parseInt(b.dataset.sys,10) === SOLAR.currentSystem ? 'true' : 'false');
+    document.querySelectorAll('#solarSystems [data-dest]').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.dest === SOLAR.currentDest ? 'true' : 'false');
     });
   }
-
   $('solarSystems').addEventListener('click', e => {
-    const b = e.target.closest('[data-sys]');
-    if (!b) return;
-    focusSystemView(parseInt(b.dataset.sys, 10));
+    const b = e.target.closest('[data-dest]');
+    if(!b) return;
+    focusDest(b.dataset.dest);
   });
-
   $('solarOrbits').addEventListener('click', ()=>{
     SOLAR.showOrbits = !SOLAR.showOrbits;
     SOLAR.systems.forEach(sys => sys.planets.forEach(p => p.orbitLine.visible = SOLAR.showOrbits));
     $('solarOrbits').setAttribute('aria-pressed', SOLAR.showOrbits ? 'true' : 'false');
   });
-
   $('solarMoons').addEventListener('click', ()=>{
     SOLAR.showMoons = !SOLAR.showMoons;
     SOLAR.systems.forEach(sys => sys.planets.forEach(p => p.moons.forEach(m => m.mesh.visible = SOLAR.showMoons)));
     $('solarMoons').setAttribute('aria-pressed', SOLAR.showMoons ? 'true' : 'false');
   });
-
   $('solarFabric').addEventListener('click', ()=>{
     SOLAR.showFabric = !SOLAR.showFabric;
-    if (SOLAR.fabric) SOLAR.fabric.mesh.visible = SOLAR.showFabric;
+    if(SOLAR.fabric) SOLAR.fabric.mesh.visible = SOLAR.showFabric;
     $('solarFabric').setAttribute('aria-pressed', SOLAR.showFabric ? 'true' : 'false');
   });
 
-  // ======================= PERIODIC TABLE =======================
+  // ============ PERIODIC TABLE ============
   const CATS=['Alkali metal','Alkaline earth','Transition metal','Post-transition','Metalloid','Nonmetal','Halogen','Noble gas','Lanthanide','Actinide'];
   const CATC=[0xf87171,0xfb923c,0x6366f1,0x2dd4bf,0xa78bfa,0x4ade80,0xa3e635,0xf472b6,0x38bdf8,0xe879f9];
-  function catOf(Z){
-    if(Z===1) return 5;
-    if(Z===2) return 7;
-    if([3,11,19,37,55,87].indexOf(Z)>=0) return 0;
-    if([4,12,20,38,56,88].indexOf(Z)>=0) return 1;
-    if(Z>=57&&Z<=71) return 8;
-    if(Z>=89&&Z<=103) return 9;
-    if([5,14,32,33,51,52].indexOf(Z)>=0) return 4;
-    if([6,7,8,15,16,34].indexOf(Z)>=0) return 5;
-    if([9,17,35,53,85,117].indexOf(Z)>=0) return 6;
-    if([10,18,36,54,86,118].indexOf(Z)>=0) return 7;
-    if([13,31,49,50,81,82,83,84,113,114,115,116].indexOf(Z)>=0) return 3;
-    return 2;
-  }
-  function posOf(Z){
-    if(Z===1) return [1,1];
-    if(Z===2) return [18,1];
-    if(Z<=10) return [Z<=4?Z-2:Z+8, 2];
-    if(Z<=18) return [Z<=12?Z-10:Z, 3];
-    if(Z<=36) return [Z-18, 4];
-    if(Z<=54) return [Z-36, 5];
-    if(Z<=56) return [Z-54, 6];
-    if(Z<=71) return [Z-54, 8];
-    if(Z<=86) return [Z-68, 6];
-    if(Z<=88) return [Z-86, 7];
-    if(Z<=103) return [Z-86, 9];
-    return [Z-100, 7];
-  }
-  function sectionOf(Z){
-    if(Z>=57 && Z<=71) return 'lan';
-    if(Z>=89 && Z<=103) return 'act';
-    return 'c' + posOf(Z)[0];
-  }
-  function isMovable(sec){
-    if (sec === 'lan' || sec === 'act') return true;
-    const col = parseInt(sec.slice(1), 10);
-    if (col === 1 || col === 18) return true;
-    if (col >= 3 && col <= 12) return true;
-    return false;
-  }
+  function catOf(Z){ if(Z===1) return 5; if(Z===2) return 7; if([3,11,19,37,55,87].indexOf(Z)>=0) return 0; if([4,12,20,38,56,88].indexOf(Z)>=0) return 1; if(Z>=57&&Z<=71) return 8; if(Z>=89&&Z<=103) return 9; if([5,14,32,33,51,52].indexOf(Z)>=0) return 4; if([6,7,8,15,16,34].indexOf(Z)>=0) return 5; if([9,17,35,53,85,117].indexOf(Z)>=0) return 6; if([10,18,36,54,86,118].indexOf(Z)>=0) return 7; if([13,31,49,50,81,82,83,84,113,114,115,116].indexOf(Z)>=0) return 3; return 2; }
+  function posOf(Z){ if(Z===1) return [1,1]; if(Z===2) return [18,1]; if(Z<=10) return [Z<=4?Z-2:Z+8, 2]; if(Z<=18) return [Z<=12?Z-10:Z, 3]; if(Z<=36) return [Z-18, 4]; if(Z<=54) return [Z-36, 5]; if(Z<=56) return [Z-54, 6]; if(Z<=71) return [Z-54, 8]; if(Z<=86) return [Z-68, 6]; if(Z<=88) return [Z-86, 7]; if(Z<=103) return [Z-86, 9]; return [Z-100, 7]; }
+  function sectionOf(Z){ if(Z>=57 && Z<=71) return 'lan'; if(Z>=89 && Z<=103) return 'act'; return 'c' + posOf(Z)[0]; }
+  function isMovable(sec){ if(sec==='lan'||sec==='act') return true; const col=parseInt(sec.slice(1), 10); if(col===1||col===18) return true; if(col>=3 && col<=12) return true; return false; }
   const SECTION_DIR = {};
-  for(let c = 1; c <= 18; c++){
-    if(c <= 2) SECTION_DIR['c' + c] = {x:-1, y:0, z:0};
-    else if(c <= 12) SECTION_DIR['c' + c] = {x:0, y:0, z:1.3};
-    else SECTION_DIR['c' + c] = {x:1, y:0, z:0};
-  }
-  SECTION_DIR.lan = {x:0, y:0, z:1.3};
-  SECTION_DIR.act = {x:0, y:0, z:1.3};
-  function familyOfCol(col){
-    if(col <= 2) return 'left';
-    if(col <= 12) return 'up';
-    return 'right';
-  }
-  const SECTION_INFO = {
-    c1:{name:'Group 1 · Alkali metals', desc:'Soft, highly reactive metals that react vigorously with water.'},
-    c2:{name:'Group 2 · Alkaline earth metals', desc:'Reactive metals, harder than group 1.'},
-    c3:{name:'Group 3 · Scandium group', desc:'Start of the f-block series.'},
-    c4:{name:'Group 4 · Titanium group', desc:'Light, corrosion-resistant metals.'},
-    c5:{name:'Group 5 · Vanadium group', desc:'Vanadium, niobium, tantalum.'},
-    c6:{name:'Group 6 · Chromium group', desc:'Chromium, molybdenum, tungsten.'},
-    c7:{name:'Group 7 · Manganese group', desc:'Manganese and rhenium.'},
-    c8:{name:'Group 8 · Iron group', desc:'Iron, ruthenium, osmium.'},
-    c9:{name:'Group 9 · Cobalt group', desc:'Cobalt, rhodium, iridium.'},
-    c10:{name:'Group 10 · Nickel group', desc:'Nickel, palladium, platinum.'},
-    c11:{name:'Group 11 · Coinage metals', desc:'Copper, silver, gold.'},
-    c12:{name:'Group 12 · Zinc group', desc:'Zinc, cadmium, mercury.'},
-    c13:{name:'Group 13 · Boron group', desc:'Includes aluminium and gallium.'},
-    c14:{name:'Group 14 · Carbon group', desc:'Includes carbon, silicon and tin.'},
-    c15:{name:'Group 15 · Pnictogens', desc:'Includes nitrogen and phosphorus.'},
-    c16:{name:'Group 16 · Chalcogens', desc:'Includes oxygen and sulfur.'},
-    c17:{name:'Group 17 · Halogens', desc:'Highly reactive nonmetals.'},
-    c18:{name:'Group 18 · Noble gases', desc:'Full outer shells — inert and stable.'},
-    lan:{name:'Lanthanides', desc:'Rare-earth metals used in magnets and phosphors.'},
-    act:{name:'Actinides', desc:'Radioactive metals; most are synthetic.'}
-  };
+  for(let c=1;c<=18;c++){ if(c<=2) SECTION_DIR['c'+c]={x:-1,y:0,z:0}; else if(c<=12) SECTION_DIR['c'+c]={x:0,y:0,z:1.3}; else SECTION_DIR['c'+c]={x:1,y:0,z:0}; }
+  SECTION_DIR.lan={x:0,y:0,z:1.3}; SECTION_DIR.act={x:0,y:0,z:1.3};
+  function familyOfCol(col){ if(col<=2) return 'left'; if(col<=12) return 'up'; return 'right'; }
+  const SECTION_INFO = {c1:{name:'Group 1',desc:'Alkali metals — soft, highly reactive.'},c2:{name:'Group 2',desc:'Alkaline earth metals.'},c3:{name:'Group 3',desc:'Start of the f-block series.'},c4:{name:'Group 4',desc:'Titanium group.'},c5:{name:'Group 5',desc:'Vanadium group.'},c6:{name:'Group 6',desc:'Chromium group.'},c7:{name:'Group 7',desc:'Manganese group.'},c8:{name:'Group 8',desc:'Iron group.'},c9:{name:'Group 9',desc:'Cobalt group.'},c10:{name:'Group 10',desc:'Nickel group.'},c11:{name:'Group 11',desc:'Coinage metals.'},c12:{name:'Group 12',desc:'Zinc group.'},c13:{name:'Group 13',desc:'Boron group.'},c14:{name:'Group 14',desc:'Carbon group.'},c15:{name:'Group 15',desc:'Pnictogens.'},c16:{name:'Group 16',desc:'Chalcogens.'},c17:{name:'Group 17',desc:'Halogens.'},c18:{name:'Group 18',desc:'Noble gases.'},lan:{name:'Lanthanides',desc:'Rare-earth metals.'},act:{name:'Actinides',desc:'Radioactive metals.'}};
   const SECTION_DIST = 2.0;
   let selectedZ = null, selectedSection = null;
-
   function updateTableTargets(){
-    tableCells.forEach(o=>{
-      const u = o.userData;
-      u.selX = 0; u.selY = 0; u.selZ = 0; u.selScale = 1;
-    });
+    tableCells.forEach(o=>{ const u=o.userData; u.selX=0; u.selY=0; u.selZ=0; u.selScale=1; });
     if(!selectedSection || !selectedZ) return;
-    if (!isMovable(selectedSection)){
-      tableCells.forEach(o=>{
-        if (o.userData.Z === selectedZ){
-          o.userData.selZ = 0.9;
-          o.userData.selScale = 1.18;
-        }
-      });
-      return;
-    }
-    const dir = SECTION_DIR[selectedSection];
-    if(!dir) return;
-    const isLanAct = selectedSection === 'lan' || selectedSection === 'act';
+    if(!isMovable(selectedSection)){ tableCells.forEach(o=>{ if(o.userData.Z===selectedZ){ o.userData.selZ=0.9; o.userData.selScale=1.18; } }); return; }
+    const dir = SECTION_DIR[selectedSection]; if(!dir) return;
+    const isLanAct = selectedSection==='lan' || selectedSection==='act';
     const selCol = isLanAct ? null : parseInt(selectedSection.slice(1), 10);
     const fam = isLanAct ? selectedSection : familyOfCol(selCol);
-
-    tableCells.forEach(o=>{
-      const u = o.userData;
-      if(u.section === selectedSection){
-        const extra = (u.Z === selectedZ) ? 1.2 : 0;
-        u.selX = dir.x * (SECTION_DIST + extra);
-        u.selY = dir.y * (SECTION_DIST + extra);
-        u.selZ = dir.z * (SECTION_DIST + extra);
-        u.selScale = (u.Z === selectedZ) ? 1.28 : 1.05;
-        return;
-      }
+    tableCells.forEach(o=>{ const u=o.userData;
+      if(u.section === selectedSection){ const extra=(u.Z===selectedZ)?1.2:0; u.selX=dir.x*(SECTION_DIST+extra); u.selY=dir.y*(SECTION_DIST+extra); u.selZ=dir.z*(SECTION_DIST+extra); u.selScale=(u.Z===selectedZ)?1.28:1.05; return; }
       if(isLanAct) return;
-      const col = posOf(u.Z)[0];
-      if(familyOfCol(col) !== fam) return;
-      const dcol = Math.abs(col - selCol);
-      if(dcol < 1 || dcol > 4) return;
-      const falloff = 1 - dcol / 5;
-      const strength = falloff * falloff * 0.55;
-      u.selX = dir.x * strength * SECTION_DIST;
-      u.selY = dir.y * strength * SECTION_DIST;
-      u.selZ = dir.z * strength * SECTION_DIST;
-      u.selScale = 1 + 0.05 * falloff;
+      const col = posOf(u.Z)[0]; if(familyOfCol(col) !== fam) return;
+      const dcol = Math.abs(col - selCol); if(dcol<1||dcol>4) return;
+      const falloff = 1 - dcol/5; const strength = falloff*falloff*0.55;
+      u.selX=dir.x*strength*SECTION_DIST; u.selY=dir.y*strength*SECTION_DIST; u.selZ=dir.z*strength*SECTION_DIST; u.selScale=1+0.05*falloff;
     });
   }
-
-  function clearTableSelection(){
-    selectedZ = null; selectedSection = null;
-    updateTableTargets();
-  }
+  function clearTableSelection(){ selectedZ=null; selectedSection=null; updateTableTargets(); }
   function handleTableTap(Z){
-    if(selectedZ === Z){
-      clearTableSelection(); lastHover = null; card.classList.remove('on');
-      openAtom(Z);
-      return;
-    }
-    selectedZ = Z; selectedSection = sectionOf(Z);
-    updateTableTargets();
-    lastHover = null;
-    const info = SECTION_INFO[selectedSection];
-    const movable = isMovable(selectedSection);
-    if(info) showCard(info.name, [], info.desc + (movable ? ' Tap the same element again to open its atom.' : ' (Stays in place.) Tap the same element again to open its atom.'));
+    if(selectedZ === Z){ clearTableSelection(); lastHover=null; card.classList.remove('on'); openAtom(Z); return; }
+    selectedZ=Z; selectedSection=sectionOf(Z); updateTableTargets(); lastHover=null;
+    const info=SECTION_INFO[selectedSection];
+    if(info) showCard(info.name, [], info.desc + ' Tap the same element again to open its atom.');
   }
 
   const TP=1.14, TC=0.96, TW=20.34, TH=10.78;
-  const tX = c => (c-9.5)*TP, tY = r => (4.5-r)*TP - (r>=8?0.7:0) + 0.92;
+  const tX=c=>(c-9.5)*TP, tY=r=>(4.5-r)*TP-(r>=8?0.7:0)+0.92;
   const TCOLS=11, TROWS=11;
   let tableCells=[], tableBuilt=false, fontRetry=false;
-
   function buildTable(){
     if(tableBuilt) return; tableBuilt=true;
     const MAXTEX=renderer.capabilities.maxTextureSize||4096;
@@ -1627,96 +1195,50 @@ body.focus #menuWrap{display:none!important}
     const cw=SZ/TCOLS, ch=SZ/TROWS, S=Math.min(cw,ch);
     const cv=document.createElement('canvas'); cv.width=cv.height=SZ;
     const g=cv.getContext('2d'), FAM='Outfit, system-ui, sans-serif';
-    const roundRect=(x,y,w,h,r)=>{
-      g.beginPath();
-      g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.arcTo(x+w,y,x+w,y+r,r);
-      g.lineTo(x+w,y+h-r); g.arcTo(x+w,y+h,x+w-r,y+h,r);
-      g.lineTo(x+r,y+h); g.arcTo(x,y+h,x,y+h-r,r);
-      g.lineTo(x,y+r); g.arcTo(x,y,x+r,y,r);
-      g.closePath();
-    };
+    const roundRect=(x,y,w,h,r)=>{ g.beginPath(); g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.arcTo(x+w,y,x+w,y+r,r); g.lineTo(x+w,y+h-r); g.arcTo(x+w,y+h,x+w-r,y+h,r); g.lineTo(x+r,y+h); g.arcTo(x,y+h,x,y+h-r,r); g.lineTo(x,y+r); g.arcTo(x,y,x+r,y,r); g.closePath(); };
     ELS.forEach((el,i)=>{
       const Z=i+1, base=CATC[catOf(Z)], col=i%TCOLS, row=(i/TCOLS)|0;
       const x=col*cw, y=row*ch, bg='#'+base.toString(16).padStart(6,'0');
       g.fillStyle=bg; g.fillRect(x,y,cw,ch);
-      const gr=g.createLinearGradient(x,y,x,y+ch);
-      gr.addColorStop(0,'rgba(255,255,255,.22)');
-      gr.addColorStop(.42,'rgba(255,255,255,.02)');
-      gr.addColorStop(1,'rgba(0,0,0,.28)');
-      g.fillStyle=gr; g.fillRect(x,y,cw,ch);
-      const inset=S*0.055;
-      g.strokeStyle='rgba(255,255,255,.30)'; g.lineWidth=Math.max(2,S*0.011);
-      roundRect(x+inset,y+inset,cw-inset*2,ch-inset*2,S*0.12); g.stroke();
-      const ew=Math.max(3,S*0.024);
-      g.strokeStyle='rgba(4,10,18,.50)'; g.lineWidth=ew;
-      g.strokeRect(x+ew/2,y+ew/2,cw-ew,ch-ew);
-      const R=(base>>16)&255, G=(base>>8)&255, B=base&255;
-      const L=(0.2126*R+0.7152*G+0.0722*B)/255;
-      const dark=L>0.62;
-      const ink=dark?'rgba(8,20,32,.94)':'rgba(255,255,255,.97)';
-      const ink2=dark?'rgba(8,20,32,.60)':'rgba(255,255,255,.66)';
-      const shad=dark?'rgba(255,255,255,.40)':'rgba(3,8,16,.45)';
-      const pad=S*0.115;
-      const zS=S*0.145;
-      g.font='600 '+zS+'px '+FAM;
-      const zw=g.measureText(String(Z)).width;
+      const gr=g.createLinearGradient(x,y,x,y+ch); gr.addColorStop(0,'rgba(255,255,255,.22)'); gr.addColorStop(.42,'rgba(255,255,255,.02)'); gr.addColorStop(1,'rgba(0,0,0,.28)'); g.fillStyle=gr; g.fillRect(x,y,cw,ch);
+      const inset=S*0.055; g.strokeStyle='rgba(255,255,255,.30)'; g.lineWidth=Math.max(2,S*0.011); roundRect(x+inset,y+inset,cw-inset*2,ch-inset*2,S*0.12); g.stroke();
+      const ew=Math.max(3,S*0.024); g.strokeStyle='rgba(4,10,18,.50)'; g.lineWidth=ew; g.strokeRect(x+ew/2,y+ew/2,cw-ew,ch-ew);
+      const R=(base>>16)&255, G=(base>>8)&255, B=base&255; const L=(0.2126*R+0.7152*G+0.0722*B)/255; const dark=L>0.62;
+      const ink=dark?'rgba(8,20,32,.94)':'rgba(255,255,255,.97)'; const ink2=dark?'rgba(8,20,32,.60)':'rgba(255,255,255,.66)';
+      const shad=dark?'rgba(255,255,255,.40)':'rgba(3,8,16,.45)'; const pad=S*0.115; const zS=S*0.145;
+      g.font='600 '+zS+'px '+FAM; const zw=g.measureText(String(Z)).width;
       const bw=zw+zS*0.62, bh=zS*1.14, bx=x+pad, by=y+pad;
-      g.fillStyle=dark?'rgba(255,255,255,.44)':'rgba(6,14,24,.22)';
-      roundRect(bx,by,bw,bh,zS*0.34); g.fill();
-      g.fillStyle=ink; g.textAlign='left'; g.textBaseline='middle';
-      g.fillText(String(Z), bx+zS*0.31, by+bh*0.55);
-      g.font='600 '+(S*0.40)+'px '+FAM;
-      g.textAlign='center'; g.textBaseline='middle';
-      g.shadowColor=shad; g.shadowBlur=S*0.035; g.shadowOffsetY=S*0.012;
-      g.fillStyle=ink;
-      g.fillText(el[0], x+cw/2, y+ch*0.485);
+      g.fillStyle=dark?'rgba(255,255,255,.44)':'rgba(6,14,24,.22)'; roundRect(bx,by,bw,bh,zS*0.34); g.fill();
+      g.fillStyle=ink; g.textAlign='left'; g.textBaseline='middle'; g.fillText(String(Z), bx+zS*0.31, by+bh*0.55);
+      g.font='600 '+(S*0.40)+'px '+FAM; g.textAlign='center'; g.textBaseline='middle';
+      g.shadowColor=shad; g.shadowBlur=S*0.035; g.shadowOffsetY=S*0.012; g.fillStyle=ink; g.fillText(el[0], x+cw/2, y+ch*0.485);
       g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
-      const maxW=cw-pad*2.6;
-      let nS=S*0.112;
-      g.font='500 '+nS+'px '+FAM;
+      const maxW=cw-pad*2.6; let nS=S*0.112; g.font='500 '+nS+'px '+FAM;
       while(nS>9 && g.measureText(el[1]).width>maxW){ nS-=1.5; g.font='500 '+nS+'px '+FAM; }
-      g.fillStyle=ink;
-      g.fillText(el[1], x+cw/2, y+ch*0.775);
-      g.font='500 '+(S*0.086)+'px '+FAM;
-      g.textAlign='right'; g.textBaseline='alphabetic';
-      g.fillStyle=ink2;
-      g.fillText(String(el[2]), x+cw-pad*0.8, y+ch-pad*0.55);
+      g.fillStyle=ink; g.fillText(el[1], x+cw/2, y+ch*0.775);
+      g.font='500 '+(S*0.086)+'px '+FAM; g.textAlign='right'; g.textBaseline='alphabetic'; g.fillStyle=ink2; g.fillText(String(el[2]), x+cw-pad*0.8, y+ch-pad*0.55);
     });
-    const tex=new THREE.CanvasTexture(cv);
-    tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    tex.minFilter=THREE.LinearMipmapLinearFilter;
+    const tex=new THREE.CanvasTexture(cv); tex.anisotropy=renderer.capabilities.getMaxAnisotropy(); tex.minFilter=THREE.LinearMipmapLinearFilter;
     ELS.forEach((el,i)=>{
       const Z=i+1, p=posOf(Z), col=i%TCOLS, row=(i/TCOLS)|0;
       const u0=col/TCOLS, u1=(col+1)/TCOLS, v0=1-(row+1)/TROWS, v1=1-row/TROWS;
       const geo=new THREE.BoxGeometry(TC,TC,TC), uv=geo.attributes.uv;
-      [0,1,4,5].forEach(f=>{
-        for(let k=0;k<4;k++){
-          const idx=f*4+k;
-          uv.setXY(idx, u0+uv.getX(idx)*(u1-u0), v0+uv.getY(idx)*(v1-v0));
-        }
-      });
+      [0,1,4,5].forEach(f=>{ for(let k=0;k<4;k++){ const idx=f*4+k; uv.setXY(idx, u0+uv.getX(idx)*(u1-u0), v0+uv.getY(idx)*(v1-v0)); } });
       uv.needsUpdate=true;
       const label=new THREE.MeshBasicMaterial({map:tex});
       const body=new THREE.MeshStandardMaterial({color:CATC[catOf(Z)], roughness:.5, metalness:.2, emissive:0xffffff, emissiveIntensity:0});
       const m=new THREE.Mesh(geo,[label,label,body,body,label,label]);
-      const bx=tX(p[0]), by=tY(p[1]);
-      m.position.set(bx, by, 0);
-      m.userData={ kind:'el', Z, hover:1, lift:0, body, section:sectionOf(Z), baseX:bx, baseY:by, selX:0, selY:0, selZ:0, selScale:1 };
+      const bx=tX(p[0]), by=tY(p[1]); m.position.set(bx, by, 0);
+      m.userData={kind:'el', Z, hover:1, lift:0, body, section:sectionOf(Z), baseX:bx, baseY:by, selX:0, selY:0, selZ:0, selScale:1};
       tableRoot.add(m); tableCells.push(m);
     });
     $('tableLegend').innerHTML=CATS.map((n,i)=>'<span><i style="background:'+HEX(CATC[i])+'"></i>'+n+'</span>').join('');
-    if(!fontRetry && document.fonts && document.fonts.status!=='loaded'){
-      fontRetry=true;
-      document.fonts.ready.then(()=>{ tableBuilt=false; tableCells.length=0; clearRoot(tableRoot); buildTable(); });
-    }
+    if(!fontRetry && document.fonts && document.fonts.status!=='loaded'){ fontRetry=true; document.fonts.ready.then(()=>{ tableBuilt=false; tableCells.length=0; clearRoot(tableRoot); buildTable(); }); }
   }
-  function tableFit(){
-    const vf=camera.fov*Math.PI/180, hf=2*Math.atan(Math.tan(vf/2)*camera.aspect);
-    return Math.max((TW/2)/Math.tan(hf/2), (TH/2)/Math.tan(vf/2))*1.3;
-  }
+  function tableFit(){ const vf=camera.fov*Math.PI/180, hf=2*Math.atan(Math.tan(vf/2)*camera.aspect); return Math.max((TW/2)/Math.tan(hf/2), (TH/2)/Math.tan(vf/2))*1.3; }
   function openAtom(Z){ clearTableSelection(); if(view!=='atom') setView('atom'); build(Z-1); }
 
-  // ======================= VIEWS & MENU =======================
+  // ============ VIEWS ============
   function enterView(){
     focused=null; lastHover=null;
     if(view !== 'solar') goal.target.set(0, 0, 0);
@@ -1726,62 +1248,34 @@ body.focus #menuWrap{display:none!important}
     rings.forEach(r=>{ r.material.opacity=0.28; });
   }
   function setView(v){
-    const prev=view;
     view=v;
     const atom=v==='atom', table=v==='table', solar=v==='solar';
-    atomRoot.visible=atom;
-    molRoot.visible=!atom&&!table&&!solar;
-    tableRoot.visible=table;
-    solarRoot.visible=solar;
-    $('atomUI').hidden=!atom;
-    $('molUI').hidden=atom||table||solar;
-    $('solarUI').hidden=!solar;
-    $('tableUI').hidden=!table;
-    $('speedRow').hidden=table;
-    ladder.hidden=!atom;
-    $('speedLabel').textContent = atom ? 'Electron speed' : (solar ? 'Time scale' : 'Spin speed');
+    atomRoot.visible=atom; molRoot.visible=!atom&&!table&&!solar; tableRoot.visible=table; solarRoot.visible=solar;
+    $('atomUI').hidden=!atom; $('molUI').hidden=atom||table||solar; $('solarUI').hidden=!solar; $('tableUI').hidden=!table;
+    $('speedRow').hidden=table; ladder.hidden=!atom;
+    $('speedLabel').textContent = atom?'Electron speed':(solar?'Time scale':'Spin speed');
     openGroup=null; userZoomed=false;
-
-    if(atom){
-      $('title').textContent=cur.name;
-      $('sub').textContent=ELS[cur.Z-1][0]+'-'+cur.A+' · atomic number '+cur.Z+' · '+cur.N+' neutron'+(cur.N===1?'':'s')+' · shells '+cur.sh.join(', ');
-      defR=SHELL_R[cur.sh.length-1]*2.4+3;
-      enterView();
-    } else if(table){
-      buildTable(); defR=tableFit();
-      $('title').textContent='Periodic table';
-      $('sub').textContent='Tap a movable column (groups 1, 18, transition metals, rare earths) to separate it';
-      clearTableSelection();
-      goal.theta=0; goal.phi=1.26;
-      enterView();
-    } else if(solar){
+    if(atom){ $('title').textContent=cur.name; $('sub').textContent=ELS[cur.Z-1][0]+'-'+cur.A+' · atomic number '+cur.Z+' · '+cur.N+' neutron'+(cur.N===1?'':'s')+' · shells '+cur.sh.join(', '); defR=SHELL_R[cur.sh.length-1]*2.4+3; enterView(); }
+    else if(table){ buildTable(); defR=tableFit(); $('title').textContent='Periodic table'; $('sub').textContent='Tap a movable column to separate it'; clearTableSelection(); goal.theta=0; goal.phi=1.26; enterView(); }
+    else if(solar){
       buildSolarSystem();
       enterView();
-      SOLAR.currentSystem = 0;
+      SOLAR.currentDest = 'sys:0';
       updateSolarChips();
-      const solCenter = SOLAR.systems[0].data.center;
-      goal.target.copy(solCenter);
+      goal.target.copy(SOLAR.systems[0].data.center);
       goal.radius = 75;
-      cam.target.copy(solCenter);
+      cam.target.copy(SOLAR.systems[0].data.center);
       cam.radius = 75;
-      cam.theta = 0.4;
-      cam.phi = 1.2;
-      goal.theta = 0.4;
-      goal.phi = 1.2;
-      $('title').textContent='Our galactic neighborhood';
-      $('sub').textContent='Compressed map of nearby stars within our Milky Way · drag to orbit · scroll out to see everything';
-      showCard('Local stellar neighborhood', [
-        ['Home', 'Solar System'],
-        ['Closest star', 'Proxima Centauri (4.24 ly)'],
-        ['Destinations', '9 systems + 2 exotic objects']
-      ], 'All objects here live within our own galaxy. Distances are compressed so nearby stars, red giants, blue supergiants and stellar remnants all fit on screen together.');
-    } else {
-      buildMol(curIdx[v]);
-      goal.theta=0.6; goal.phi=1.2;
-      enterView();
-    }
-    if(prev==='table' && !table){ goal.theta=0.6; goal.phi=1.2; }
-    if(prev==='solar' && !solar){ goal.theta=0.6; goal.phi=1.2; }
+      cam.theta = 0.4; cam.phi = 1.2; goal.theta = 0.4; goal.phi = 1.2;
+      $('title').textContent='Milky Way';
+      $('sub').textContent='Our home galaxy · drag to orbit · scroll out to see the whole galaxy · click any body for details';
+      showCard('The Milky Way', [
+        ['Galaxy', 'Barred spiral · SBbc'],
+        ['Diameter', '~100,000 light-years'],
+        ['Stars', '~200 billion'],
+        ['Supermassive BH', 'Sagittarius A* (4.3 million M☉)']
+      ], 'Zoom out to reveal the full galaxy — spiral arms, nebulae, and the supermassive black hole at its heart. Click any body or use the chips to explore.');
+    } else { buildMol(curIdx[v]); goal.theta=0.6; goal.phi=1.2; enterView(); }
     document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v));
     closeMenu(); closeUIMenu();
   }
@@ -1791,27 +1285,20 @@ body.focus #menuWrap{display:none!important}
   menuBtn.addEventListener('click', ()=>{ const open=menu.hidden; closeUIMenu(); menu.hidden=!open; menuBtn.setAttribute('aria-expanded', String(open)); });
   uiBtn.addEventListener('click', ()=>{ const open=uiMenu.hidden; closeMenu(); uiMenu.hidden=!open; uiBtn.setAttribute('aria-expanded', String(open)); });
   menu.addEventListener('click', e=>{ const b=e.target.closest('[data-view]'); if(b) setView(b.dataset.view); });
-
   $('tHeader').addEventListener('change', e=>{ UI.header=e.target.checked; applyUI(); });
   $('tLadder').addEventListener('change', e=>{ UI.ladder=e.target.checked; applyUI(); });
   $('tPanel').addEventListener('change', e=>{ UI.panel=e.target.checked; applyUI(); });
   $('tCard').addEventListener('change', e=>{ UI.card=e.target.checked; applyUI(); });
   $('focusBtn').addEventListener('click', ()=>{ UI.focus=true; applyUI(); });
   $('showUI').addEventListener('click', ()=>{ UI.focus=false; applyUI(); });
-
-  addEventListener('keydown', e=>{
-    if(e.key!=='Escape') return;
-    if(UI.focus){ UI.focus=false; applyUI(); return; }
-    closeMenu(); closeUIMenu();
-  });
-
+  addEventListener('keydown', e=>{ if(e.key!=='Escape') return; if(UI.focus){ UI.focus=false; applyUI(); return; } closeMenu(); closeUIMenu(); });
   $('cloud').addEventListener('click', e=>{ cloudMode=!cloudMode; e.currentTarget.setAttribute('aria-checked', cloudMode); applyMode(); if(cloudMode && focused && focused.userData.kind==='e') reset(); });
   $('fill').addEventListener('click', e=>{ spaceFill=!spaceFill; e.currentTarget.setAttribute('aria-checked', spaceFill); applyStyle(); if(spaceFill && focused && focused.userData.kind==='bond') reset(); });
   if(reduceMotion) slider.value=0;
   const showSpeed=()=>{ $('speedOut').textContent=(+slider.value).toFixed(1)+'×'; };
   slider.addEventListener('input', showSpeed); showSpeed();
 
-  // ======================= CARD & FOCUS =======================
+  // ============ CARD ============
   function showCard(title, rows, text){
     card.querySelector('b').textContent=title;
     $('dl').innerHTML=rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
@@ -1820,47 +1307,32 @@ body.focus #menuWrap{display:none!important}
   function focusPart(s){
     focused=null; goal.target.set(0,0,0);
     rings.forEach((r,k)=>{ r.material.opacity=(s===k)?0.95:0.28; });
-    if(s===null){
-      goal.radius=nucR*3+3; setPart(1); renderLadder(-1);
-      showCard('Nucleus', [['Protons',cur.Z],['Neutrons',cur.N],['Mass number',cur.Z+cur.N]], 'Protons and neutrons packed together. The protons decide the element, the neutrons add mass.');
-    } else {
-      goal.radius=SHELL_R[s]*2.2+2; setPart(s+2); renderLadder(s);
-      const outer=s===cur.sh.length-1;
-      showCard('Shell '+(s+1)+' (energy level n='+(s+1)+')', [['Electrons', cur.sh[s]+' of '+2*(s+1)*(s+1)],['Energy', s===0?'Lowest':outer?'Highest here':'Middle']],
-        outer ? 'The outer shell. Its valence electrons decide how the atom bonds.' : 'Inner shells sit closer to the nucleus and have lower energy.');
-    }
+    if(s===null){ goal.radius=nucR*3+3; setPart(1); renderLadder(-1); showCard('Nucleus', [['Protons',cur.Z],['Neutrons',cur.N],['Mass number',cur.Z+cur.N]], 'Protons and neutrons packed together.'); }
+    else { goal.radius=SHELL_R[s]*2.2+2; setPart(s+2); renderLadder(s); const outer=s===cur.sh.length-1;
+      showCard('Shell '+(s+1)+' (n='+(s+1)+')', [['Electrons', cur.sh[s]+' of '+2*(s+1)*(s+1)],['Energy', s===0?'Lowest':outer?'Highest here':'Middle']], outer?'The outer shell. Its valence electrons decide how the atom bonds.':'Inner shells sit closer to the nucleus and have lower energy.'); }
   }
   function molText(d){
     const hasO2=d.cnt[2] && d.nbr.includes('O');
-    if(d.el==='C') return hasO2 ? 'The carbonyl carbon: a flat group with a double bond to oxygen.' : d.hyb==='sp3'?'Four single bonds pointing to the corners of a tetrahedron.':d.hyb==='sp2'?'Flat, with three groups spread 120° apart and one double bond.':'Linear, with a triple bond.';
-    if(d.el==='N') return d.hyb==='sp2' ? 'Nitrogen in a C=N group, with three bonds in total.' : 'Nitrogen makes three bonds and keeps one lone pair. In an amino acid it forms the amine group.';
-    if(d.el==='O') return d.cnt[2] ? 'Double-bonded oxygen, the C=O of a carbonyl group.' : 'Single-bonded oxygen, as in a hydroxyl (–OH) group, which can form hydrogen bonds.';
-    if(d.el==='S') return 'Sulfur in the side chain, as a thiol (–SH) or a thioether (C–S–C).';
+    if(d.el==='C') return hasO2 ? 'The carbonyl carbon: a flat group with a double bond to oxygen.' : d.hyb==='sp3'?'Four single bonds pointing to the corners of a tetrahedron.':d.hyb==='sp2'?'Flat, with three groups spread 120° apart.':'Linear, with a triple bond.';
+    if(d.el==='N') return d.hyb==='sp2' ? 'Nitrogen in a C=N group.' : 'Nitrogen makes three bonds and keeps one lone pair.';
+    if(d.el==='O') return d.cnt[2] ? 'Double-bonded oxygen, the C=O of a carbonyl group.' : 'Single-bonded oxygen, as in a hydroxyl (–OH) group.';
+    if(d.el==='S') return 'Sulfur in the side chain.';
     return 'Hydrogen shares one electron pair with its neighbor.';
   }
   function focus(o){
     focused=o; const d=o.userData;
     rings.forEach(r=>{ r.material.opacity=0.28; });
     if(view!=='atom'){
-      if(d.kind==='bond'){
-        goal.radius=3.2;
-        const bi=bondInfo(d.ea,d.eb,d.o,d.ar), kind=d.ar?'aromatic':({1:'single',2:'double',3:'triple'})[d.o];
-        const T={single:'One shared electron pair. Atoms can rotate around a single bond.',double:'One sigma and one pi bond. Shorter and stronger than a single bond, and it holds the atoms flat.',
-          triple:'One sigma and two pi bonds. The shortest and strongest, with the atoms in a straight line.',aromatic:'Part of an aromatic ring. Delocalized electrons make every ring bond identical, between single and double.'};
-        showCard('Bond: '+d.ea+(d.o===2?'=':d.o===3?'≡':'–')+d.eb, [['Atoms',EN[d.ea]+' and '+EN[d.eb]],['Type',kind],['Length',bi[0]+' Å'],['Energy',bi[1]+' kJ/mol']], T[kind]);
-        return;
-      }
+      if(d.kind==='bond'){ goal.radius=3.2; const bi=bondInfo(d.ea,d.eb,d.o,d.ar), kind=d.ar?'aromatic':({1:'single',2:'double',3:'triple'})[d.o];
+        showCard('Bond: '+d.ea+(d.o===2?'=':d.o===3?'≡':'–')+d.eb, [['Atoms',EN[d.ea]+' and '+EN[d.eb]],['Type',kind],['Length',bi[0]+' Å'],['Energy',bi[1]+' kJ/mol']], 'A chemical bond.'); return; }
       goal.radius=d.el==='H'?2.8:3.4;
       const rows=d.el==='H' ? [['Bonded to',[...new Set(d.nbr)].map(e=>EN[e].toLowerCase()).join(', ')],['Bond','single']] : [['Hybridization',d.hyb],['Bond angle',ANG[d.hyb]+'°'],['Bonds',d.bonds]];
-      showCard(EN[d.el]+' atom', rows, molText(d));
-      return;
+      showCard(EN[d.el]+' atom', rows, molText(d)); return;
     }
-    setPart(-1);
-    goal.radius=d.kind==='e'?3.5:2.4;
-    if(d.kind==='e'){ renderLadder(d.shell-1);
-      showCard('Electron, energy level n='+d.shell, [['Charge','−1'],['Shell', d.shell+' of '+d.total],['Shell holds', d.count+' of '+d.cap],['Valence', d.valence?'Yes':'No']], d.valence?'An outer shell electron. These decide how the atom bonds.':'An inner shell electron, held tightly by the nucleus.'); }
-    else if(d.kind==='p') showCard('Proton', [['Charge','+1'],['Mass','1.007 u'],['Made of','up, up, down quarks']], 'The number of protons decides which element this is.');
-    else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Made of','up, down, down quarks']], 'Neutrons add mass and help hold the nucleus together.');
+    setPart(-1); goal.radius=d.kind==='e'?3.5:2.4;
+    if(d.kind==='e'){ renderLadder(d.shell-1); showCard('Electron, energy level n='+d.shell, [['Charge','−1'],['Shell', d.shell+' of '+d.total],['Shell holds', d.count+' of '+d.cap],['Valence', d.valence?'Yes':'No']], d.valence?'An outer shell electron.':'An inner shell electron.'); }
+    else if(d.kind==='p') showCard('Proton', [['Charge','+1'],['Mass','1.007 u']], 'The number of protons decides which element this is.');
+    else showCard('Neutron', [['Charge','0'],['Mass','1.009 u']], 'Neutrons add mass and help hold the nucleus together.');
   }
   function reset(){
     focused=null;
@@ -1870,9 +1342,9 @@ body.focus #menuWrap{display:none!important}
     card.classList.remove('on'); setPart(0); renderLadder(-1);
   }
 
-  // ======================= CAMERA & PICKING =======================
+  // ============ CAMERA ============
   const cam={theta:0.6, phi:1.2, radius:14, target:new V()}, goal={theta:0.6, phi:1.2, radius:14, target:new V()};
-  const R_MIN=1.5, R_MAX=600;
+  const R_MIN=1.5, R_MAX=5000;
   let dragging=false, moved=0, mode='orbit', hovered=null, focused=null, lastHover=null, userZoomed=false, pinch=null;
   let lastX=0, lastY=0;
   const ptrs=new Map();
@@ -1882,20 +1354,15 @@ body.focus #menuWrap{display:none!important}
     if(view==='table') return tableCells;
     if(view==='solar'){
       const items = [];
-      for (const sys of SOLAR.systems){
-        for (const star of sys.stars) items.push(star.group);
-        for (const p of sys.planets){
-          items.push(p.mesh);
-          for (const m of p.moons) items.push(m.mesh);
-        }
-      }
-      for (const ex of SOLAR.exoticBodies) items.push(ex.bodyGroup);
+      for(const sys of SOLAR.systems){ for(const s of sys.stars) items.push(s.group); for(const p of sys.planets){ items.push(p.mesh); for(const m of p.moons) items.push(m.mesh); } }
+      for(const ex of SOLAR.exoticBodies) items.push(ex.bodyGroup);
+      if(SOLAR.sgrA) items.push(SOLAR.sgrA);
+      for(const neb of SOLAR.nebulae) items.push(neb.points);
       return items;
     }
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
     return cloudMode ? nucleusParts : nucleusParts.concat(electrons);
   };
-
   function zoomBy(f){ goal.radius=clamp(goal.radius*f, R_MIN, R_MAX); userZoomed=true; }
   function panBy(dx,dy){
     if(view!=='table') return;
@@ -1903,43 +1370,23 @@ body.focus #menuWrap{display:none!important}
     const right=new V().setFromMatrixColumn(camera.matrixWorld,0);
     const up=new V().setFromMatrixColumn(camera.matrixWorld,1);
     goal.target.addScaledVector(right,-dx*s).addScaledVector(up,dy*s);
-    goal.target.x=clamp(goal.target.x,-TW/2,TW/2);
-    goal.target.y=clamp(goal.target.y,-TH/2,TH/2);
-    goal.target.z=0;
+    goal.target.x=clamp(goal.target.x,-TW/2,TW/2); goal.target.y=clamp(goal.target.y,-TH/2,TH/2); goal.target.z=0;
   }
-
   canvas.addEventListener('pointerdown', e=>{
     closeMenu(); closeUIMenu();
     ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
     canvas.classList.add('drag');
-    if(ptrs.size===1){
-      dragging=true; moved=0; mode=(view==='table'&&!e.shiftKey)?'pan':'orbit';
-      lastX=e.clientX; lastY=e.clientY;
-    } else {
-      moved=99; pinch=null;
-      if(ptrs.size===2){
-        const [a,b]=[...ptrs.values()];
-        pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2};
-      }
-    }
+    if(ptrs.size===1){ dragging=true; moved=0; mode=(view==='table'&&!e.shiftKey)?'pan':'orbit'; lastX=e.clientX; lastY=e.clientY; }
+    else { moved=99; pinch=null; if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2}; } }
   });
   canvas.addEventListener('pointermove', e=>{
     mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
     if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(ptrs.size>=2){
-      moved=99;
-      const [a,b]=[...ptrs.values()];
-      const d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-      if(pinch){ zoomBy(pinch.d/d); panBy(mx-pinch.mx, my-pinch.my); }
-      pinch={d,mx,my};
-      return;
-    }
+    if(ptrs.size>=2){ moved=99; const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2; if(pinch){ zoomBy(pinch.d/d); panBy(mx-pinch.mx, my-pinch.my); } pinch={d,mx,my}; return; }
     if(!dragging) return;
-    const dx=e.clientX-lastX, dy=e.clientY-lastY;
-    moved+=Math.abs(dx)+Math.abs(dy);
-    if(mode==='pan') panBy(dx,dy);
-    else { goal.theta-=dx*0.006; goal.phi=clamp(goal.phi-dy*0.006,0.5,2.5); }
+    const dx=e.clientX-lastX, dy=e.clientY-lastY; moved+=Math.abs(dx)+Math.abs(dy);
+    if(mode==='pan') panBy(dx,dy); else { goal.theta-=dx*0.006; goal.phi=clamp(goal.phi-dy*0.006,0.5,2.5); }
     lastX=e.clientX; lastY=e.clientY;
   });
   function endPtr(e, tap){
@@ -1952,39 +1399,18 @@ body.focus #menuWrap{display:none!important}
     mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
     ray.setFromCamera(mouse,camera);
     const hit=ray.intersectObjects(pickables(), true)[0];
-    if(view==='table'){
-      if(hit) handleTableTap(hit.object.userData.Z);
-      else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
-    } else if(view==='solar'){
-      if (hit && hit.object.userData.solar) focusSolar(hit.object);
-      else if (SOLAR.currentSystem >= 0) focusSystemView(SOLAR.currentSystem);
-      else focusSystemView(-1);
-    } else {
-      hit ? focus(hit.object) : reset();
-    }
+    if(view==='table'){ if(hit) handleTableTap(hit.object.userData.Z); else { clearTableSelection(); lastHover=null; card.classList.remove('on'); } }
+    else if(view==='solar'){ if(hit && hit.object.userData.solar) focusSolar(hit.object); }
+    else { hit ? focus(hit.object) : reset(); }
   }
   canvas.addEventListener('pointerup', e=>endPtr(e,true));
   canvas.addEventListener('pointercancel', e=>endPtr(e,false));
-
-  canvas.addEventListener('wheel', e=>{
-    e.preventDefault();
-    const d=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?innerHeight:1);
-    zoomBy(Math.exp(d*0.0012));
-  }, {passive:false});
-
+  canvas.addEventListener('wheel', e=>{ e.preventDefault(); const d=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?innerHeight:1); zoomBy(Math.exp(d*0.0012)); }, {passive:false});
   $('zoomIn').addEventListener('click', ()=>zoomBy(0.72));
   $('zoomOut').addEventListener('click', ()=>zoomBy(1/0.72));
-  $('resetTable').addEventListener('click', ()=>{
-    goal.theta=0; goal.phi=1.26; goal.target.set(0,0,0); goal.radius=tableFit(); userZoomed=false;
-    clearTableSelection(); lastHover=null; card.classList.remove('on');
-  });
-
-  function resize(){
-    renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-    if(view==='table' && tableBuilt){ defR=tableFit(); if(!userZoomed) goal.radius=defR; }
-  }
-  addEventListener('resize', resize);
-  addEventListener('orientationchange', ()=>setTimeout(resize,220));
+  $('resetTable').addEventListener('click', ()=>{ goal.theta=0; goal.phi=1.26; goal.target.set(0,0,0); goal.radius=tableFit(); userZoomed=false; clearTableSelection(); lastHover=null; card.classList.remove('on'); });
+  function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); if(view==='table' && tableBuilt){ defR=tableFit(); if(!userZoomed) goal.radius=defR; } }
+  addEventListener('resize', resize); addEventListener('orientationchange', ()=>setTimeout(resize,220));
   if(window.visualViewport) visualViewport.addEventListener('resize', ()=>setTimeout(resize,140));
   resize();
 
@@ -1993,23 +1419,26 @@ body.focus #menuWrap{display:none!important}
 
   function tick(){
     const dt=Math.min(clock.getDelta(),0.1), t=clock.getElapsedTime(), speed=+slider.value;
-
     if(view==='atom'){
       electrons.forEach(e=>{ const d=e.userData; d.angle+=dt*d.speed*speed; e.position.set(Math.cos(d.angle)*d.r,0,Math.sin(d.angle)*d.r); });
-      if(!reduceMotion){
-        nucleusParts.forEach(m=>{ const d=m.userData,w=0.008; m.position.set(d.base0.x+Math.sin(t*3+d.phase)*w, d.base0.y+Math.cos(t*2.6+d.phase)*w, d.base0.z+Math.sin(t*3.3+d.phase*1.7)*w); });
-        clouds.forEach((c,i)=>{ c.rotation.y+=dt*0.05*(i+1); });
-      }
-    } else if(view==='mol' || view==='amino'){
-      molRoot.rotation.y+=dt*speed*0.3;
-    } else if(view==='solar'){
-      updateSolar(dt);
+      if(!reduceMotion){ nucleusParts.forEach(m=>{ const d=m.userData,w=0.008; m.position.set(d.base0.x+Math.sin(t*3+d.phase)*w, d.base0.y+Math.cos(t*2.6+d.phase)*w, d.base0.z+Math.sin(t*3.3+d.phase*1.7)*w); }); clouds.forEach((c,i)=>{ c.rotation.y+=dt*0.05*(i+1); }); }
+    } else if(view==='mol' || view==='amino'){ molRoot.rotation.y+=dt*speed*0.3; }
+    else if(view==='solar'){ updateSolar(dt); }
+
+    // Pull target toward origin at extreme zoom out (galaxy view)
+    if(view === 'solar' && !focused && goal.radius > 800){
+      goal.target.x *= 0.97; goal.target.z *= 0.97;
     }
 
-    // Solar auto-center pull when zoomed out
-    if (view === 'solar' && !focused && goal.radius > 150){
-      goal.target.x *= 0.98;
-      goal.target.z *= 0.98;
+    // Update title based on solar zoom level
+    if(view === 'solar' && !focused && goal.radius !== undefined){
+      const r = cam.radius;
+      let title, s2;
+      if (r < 150) { title = 'Solar System'; s2 = 'The Sun and its 8 planets · click any body'; }
+      else if (r < 500) { title = 'Local neighborhood'; s2 = 'Nearby star systems within ~30 light-years'; }
+      else if (r < 1500) { title = 'Orion Arm'; s2 = 'Our position in the Milky Way, ~26,000 ly from the centre'; }
+      else { title = 'The Milky Way'; s2 = 'A barred spiral galaxy ~100,000 ly across'; }
+      if ($('title').textContent !== title){ $('title').textContent = title; $('sub').textContent = s2; }
     }
 
     const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='solar'?solarRoot:molRoot;
@@ -2031,65 +1460,34 @@ body.focus #menuWrap{display:none!important}
       const zt = clamp((defR/Math.max(cam.radius,0.001) - 1)/1.6, 0, 1);
       const grow = 1 + 0.16*(zt*zt*(3-2*zt));
       const hv = hovered ? hovered.object : null;
-      const kPos   = 1 - Math.exp(-dt / 0.16);
-      const kScale = 1 - Math.exp(-dt / 0.2);
-
+      const kPos = 1 - Math.exp(-dt/0.16), kScale = 1 - Math.exp(-dt/0.2);
       tableCells.forEach(o=>{
-        const u = o.userData;
-        const on = (hv === o);
+        const u = o.userData; const on = (hv === o);
         u.hover += ((on ? 1.05 : 1) - u.hover) * kScale;
-        u.lift  += ((on ? 0.24 : 0) - u.lift)  * kPos;
-        const tx = u.baseX + u.selX;
-        const ty = u.baseY + u.selY;
-        const tz = u.selZ + u.lift;
-        o.position.x += (tx - o.position.x) * kPos;
-        o.position.y += (ty - o.position.y) * kPos;
-        o.position.z += (tz - o.position.z) * kPos;
-        const targetScale = grow * u.selScale * u.hover;
-        const cur = o.scale.x;
+        u.lift += ((on ? 0.24 : 0) - u.lift) * kPos;
+        const tx = u.baseX + u.selX, ty = u.baseY + u.selY, tz = u.selZ + u.lift;
+        o.position.x += (tx - o.position.x) * kPos; o.position.y += (ty - o.position.y) * kPos; o.position.z += (tz - o.position.z) * kPos;
+        const targetScale = grow * u.selScale * u.hover; const cur = o.scale.x;
         o.scale.setScalar(cur + (targetScale - cur) * kScale);
         const eTarget = clamp((u.hover - 1) * 4 + (u.Z === selectedZ ? 0.45 : 0), 0, 0.8);
         u.body.emissiveIntensity += (eTarget - u.body.emissiveIntensity) * kScale;
       });
     } else if(view==='solar'){
       const hv = hovered ? hovered.object : null;
-      list.forEach(o=>{
-        if (!o) return;
-        o.traverse(child => {
-          if (child.isMesh && child.material && child.material.emissiveIntensity !== undefined){
-            const base = (child.userData.solar && (child.userData.solar.isStar || child.userData.solar.isExotic)) ? 0.35 : 0.1;
-            const target = (hv && (hv === child || (hv.parent && hv.parent === child))) ? base + 0.4 : base;
-            child.material.emissiveIntensity += (target - child.material.emissiveIntensity) * 0.15;
-          }
-        });
-      });
+      list.forEach(o=>{ if(!o) return; o.traverse(c => { if(c.isMesh && c.material && c.material.emissiveIntensity !== undefined){ const base = (c.userData.solar && (c.userData.solar.isStar || c.userData.solar.isExotic || c.userData.solar.isNebula)) ? 0.35 : 0.1; const target = (hv && (hv === c || (hv.parent && hv.parent === c))) ? base + 0.4 : base; c.material.emissiveIntensity += (target - c.material.emissiveIntensity) * 0.15; } }); });
     } else {
-      list.forEach(o=>{
-        if(!o.userData) return;
-        const u=o.userData;
-        if (u.solar) return;
-        const want=((hovered&&hovered.object===o)||focused===o)?1.3:1;
-        u.hover = (u.hover||1) + (want - (u.hover||1))*0.2;
-        if(u.kind==='bond') o.scale.set(u.bx*u.hover,u.len,u.bx*u.hover);
-        else o.scale.setScalar((u.base||1)*u.hover);
-      });
+      list.forEach(o=>{ if(!o.userData) return; const u=o.userData; if(u.solar) return; const want=((hovered&&hovered.object===o)||focused===o)?1.3:1; u.hover=(u.hover||1)+(want-(u.hover||1))*0.2; if(u.kind==='bond') o.scale.set(u.bx*u.hover,u.len,u.bx*u.hover); else o.scale.setScalar((u.base||1)*u.hover); });
     }
 
     if(view==='table'){
       const o = hovered ? hovered.object : null;
       if(o !== lastHover){
         lastHover = o;
-        if(o){
-          const Z = o.userData.Z, el = ELS[Z-1];
-          showCard(el[1], [['Symbol',el[0]],['Atomic number',Z],['Mass number',el[2]],['Type',CATS[catOf(Z)]]], 'Tap again to open this atom in 3D.');
-        } else if(selectedSection){
-          const info = SECTION_INFO[selectedSection];
-          if(info) showCard(info.name, [], info.desc + ' Tap the same element again to open its atom.');
-          else card.classList.remove('on');
-        } else card.classList.remove('on');
+        if(o){ const Z=o.userData.Z, el=ELS[Z-1]; showCard(el[1], [['Symbol',el[0]],['Atomic number',Z],['Mass number',el[2]],['Type',CATS[catOf(Z)]]], 'Tap again to open this atom in 3D.'); }
+        else if(selectedSection){ const info=SECTION_INFO[selectedSection]; if(info) showCard(info.name, [], info.desc + ' Tap the same element again to open its atom.'); else card.classList.remove('on'); }
+        else card.classList.remove('on');
       }
     }
-
     renderer.render(scene,camera);
     requestAnimationFrame(tick);
   }
