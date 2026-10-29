@@ -969,4 +969,399 @@ body.focus #menuWrap{display:none!important}
     view=v;
     const atom=v==='atom', table=v==='table', protein=v==='protein';
     atomRoot.visible=atom; molRoot.visible=!atom&&!table&&!protein; tableRoot.visible=table; protRoot.visible=protein;
-    $('atomUI').hidden=!atom; $('
+    $('atomUI').hidden=!atom; $('molUI').hidden=atom||table||protein; $('protUI').hidden=!protein; $('tableUI').hidden=!table;
+    $('speedRow').hidden=table; ladder.hidden=!atom;
+    $('speedLabel').textContent=atom?'Electron speed':'Spin speed';
+    openGroup=null; userZoomed=false;
+    if(atom){
+      $('title').textContent=cur.name;
+      $('sub').textContent='Atomic number '+cur.Z+', mass number '+(cur.Z+cur.N)+', shells '+cur.sh.join(', ');
+      defR=SHELL_R[cur.sh.length-1]*2.4+3;
+      enterView();
+    } else if(table){
+      buildTable(); defR=tableFit();
+      $('title').textContent='Periodic table';
+      $('sub').textContent='Tap a group to separate it · tap the same element again to open its atom';
+      clearTableSelection();
+      goal.theta=0; goal.phi=1.26;
+      enterView();
+    } else if(protein){
+      buildProtein();
+      goal.theta=0.6; goal.phi=1.2;
+    } else {
+      buildMol(curIdx[v]);
+      goal.theta=0.6; goal.phi=1.2;
+    }
+    if(prev==='table' && !table){ goal.theta=0.6; goal.phi=1.2; }
+    document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v));
+    closeMenu(); closeUIMenu();
+  }
+  const menu=$('menu'), menuBtn=$('menuBtn'), uiMenu=$('uiMenu'), uiBtn=$('uiBtn');
+  function closeMenu(){ menu.hidden=true; menuBtn.setAttribute('aria-expanded','false'); }
+  function closeUIMenu(){ uiMenu.hidden=true; uiBtn.setAttribute('aria-expanded','false'); }
+  menuBtn.addEventListener('click', ()=>{ const open=menu.hidden; closeUIMenu(); menu.hidden=!open; menuBtn.setAttribute('aria-expanded', String(open)); });
+  uiBtn.addEventListener('click', ()=>{ const open=uiMenu.hidden; closeMenu(); uiMenu.hidden=!open; uiBtn.setAttribute('aria-expanded', String(open)); });
+  menu.addEventListener('click', e=>{ const b=e.target.closest('[data-view]'); if(b) setView(b.dataset.view); });
+
+  $('tHeader').addEventListener('change', e=>{ UI.header=e.target.checked; applyUI(); });
+  $('tLadder').addEventListener('change', e=>{ UI.ladder=e.target.checked; applyUI(); });
+  $('tPanel').addEventListener('change', e=>{ UI.panel=e.target.checked; applyUI(); });
+  $('tCard').addEventListener('change', e=>{ UI.card=e.target.checked; applyUI(); });
+  $('focusBtn').addEventListener('click', ()=>{ UI.focus=true; applyUI(); });
+  $('showUI').addEventListener('click', ()=>{ UI.focus=false; applyUI(); });
+
+  addEventListener('keydown', e=>{
+    if(e.key!=='Escape') return;
+    if(UI.focus){ UI.focus=false; applyUI(); return; }
+    closeMenu(); closeUIMenu();
+  });
+
+  $('cloud').addEventListener('click', e=>{ cloudMode=!cloudMode; e.currentTarget.setAttribute('aria-checked', cloudMode); applyMode(); if(cloudMode && focused && focused.userData.kind==='e') reset(); });
+  $('fill').addEventListener('click', e=>{ spaceFill=!spaceFill; e.currentTarget.setAttribute('aria-checked', spaceFill); applyStyle(); if(spaceFill && focused && focused.userData.kind==='bond') reset(); });
+  if(reduceMotion) slider.value=0;
+  const showSpeed=()=>{ $('speedOut').textContent=(+slider.value).toFixed(1)+'×'; };
+  slider.addEventListener('input', showSpeed); showSpeed();
+
+  // Protein animation controls
+  $('protPlay').addEventListener('click', ()=>{
+    if(protAnim.paused){
+      protAnim.paused = false;
+      if(protAnim.progress >= protLen) initProteinAnim();
+    } else {
+      protAnim.paused = true;
+    }
+    $('protPlay').textContent = protAnim.paused ? 'Play' : 'Pause';
+  });
+  $('protReplay').addEventListener('click', ()=>initProteinAnim());
+
+  // ---------- Info card and focus ----------
+  function showCard(title, rows, text){
+    card.querySelector('b').textContent=title;
+    $('dl').innerHTML=rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
+    card.querySelector('span').textContent=text; card.classList.add('on');
+  }
+  function focusPart(s){
+    focused=null; goal.target.set(0,0,0);
+    rings.forEach((r,k)=>{ r.material.opacity=(s===k)?0.95:0.28; });
+    if(s===null){
+      goal.radius=nucR*3+3; setPart(1); renderLadder(-1);
+      showCard('Nucleus', [['Protons',cur.Z],['Neutrons',cur.N],['Mass number',cur.Z+cur.N]], 'Protons and neutrons packed together. The protons decide the element, the neutrons add mass.');
+    } else {
+      goal.radius=SHELL_R[s]*2.2+2; setPart(s+2); renderLadder(s);
+      const outer=s===cur.sh.length-1;
+      showCard('Shell '+(s+1)+' (energy level n='+(s+1)+')', [['Electrons', cur.sh[s]+' of '+2*(s+1)*(s+1)],['Energy', s===0?'Lowest':outer?'Highest here':'Middle']],
+        outer ? 'The outer shell. Its valence electrons decide how the atom bonds.' : 'Inner shells sit closer to the nucleus and have lower energy.');
+    }
+  }
+  function molText(d){
+    const hasO2=d.cnt[2] && d.nbr.includes('O');
+    if(d.el==='C') return hasO2 ? 'The carbonyl carbon: a flat group with a double bond to oxygen.' : d.hyb==='sp3'?'Four single bonds pointing to the corners of a tetrahedron.':d.hyb==='sp2'?'Flat, with three groups spread 120° apart and one double bond.':'Linear, with a triple bond.';
+    if(d.el==='N') return d.hyb==='sp2' ? 'Nitrogen in a C=N group, with three bonds in total.' : 'Nitrogen makes three bonds and keeps one lone pair. In an amino acid it forms the amine group.';
+    if(d.el==='O') return d.cnt[2] ? 'Double-bonded oxygen, the C=O of a carbonyl group.' : 'Single-bonded oxygen, as in a hydroxyl (–OH) group, which can form hydrogen bonds.';
+    if(d.el==='S') return 'Sulfur in the side chain, as a thiol (–SH) or a thioether (C–S–C).';
+    return 'Hydrogen shares one electron pair with its neighbor.';
+  }
+  function focus(o){
+    focused=o; const d=o.userData;
+    rings.forEach(r=>{ r.material.opacity=0.28; });
+
+    if(view==='protein'){
+      if(d.kind !== 'res') return;
+      goal.radius=Math.min(goal.radius, 12);
+      showCard(AA_NAME[d.res]||d.res, [['Residue', (d.idx+1)+' of '+protLen],['Letter', d.res],['Class', AA_TYPE[d.res]||'—']], AA_DESC[d.res]||'An amino acid residue in the Trp-cage miniprotein.');
+      return;
+    }
+    if(view!=='atom'){
+      if(d.kind==='bond'){
+        goal.radius=3.2;
+        const bi=bondInfo(d.ea,d.eb,d.o,d.ar), kind=d.ar?'aromatic':({1:'single',2:'double',3:'triple'})[d.o];
+        const T={single:'One shared electron pair. Atoms can rotate around a single bond.',double:'One sigma and one pi bond. Shorter and stronger than a single bond, and it holds the atoms flat.',
+          triple:'One sigma and two pi bonds. The shortest and strongest, with the atoms in a straight line.',aromatic:'Part of an aromatic ring. Delocalized electrons make every ring bond identical, between single and double.'};
+        showCard('Bond: '+d.ea+(d.o===2?'=':d.o===3?'≡':'–')+d.eb, [['Atoms',EN[d.ea]+' and '+EN[d.eb]],['Type',kind],['Length',bi[0]+' Å'],['Energy',bi[1]+' kJ/mol']], T[kind]);
+        return;
+      }
+      goal.radius=d.el==='H'?2.8:3.4;
+      const rows=d.el==='H' ? [['Bonded to',[...new Set(d.nbr)].map(e=>EN[e].toLowerCase()).join(', ')],['Bond','single']] : [['Hybridization',d.hyb],['Bond angle',ANG[d.hyb]+'°'],['Bonds',d.bonds]];
+      showCard(EN[d.el]+' atom', rows, molText(d));
+      return;
+    }
+    setPart(-1);
+    goal.radius=d.kind==='e'?3.5:2.4;
+    if(d.kind==='e'){ renderLadder(d.shell-1);
+      showCard('Electron, energy level n='+d.shell, [['Charge','−1'],['Shell', d.shell+' of '+d.total],['Shell holds', d.count+' of '+d.cap],['Valence', d.valence?'Yes':'No']], d.valence?'An outer shell electron. These decide how the atom bonds.':'An inner shell electron, held tightly by the nucleus.'); }
+    else if(d.kind==='p') showCard('Proton', [['Charge','+1'],['Mass','1.007 u'],['Made of','up, up, down quarks']], 'The number of protons decides which element this is.');
+    else showCard('Neutron', [['Charge','0'],['Mass','1.009 u'],['Made of','up, down, down quarks']], 'Neutrons add mass and help hold the nucleus together.');
+  }
+  function reset(){
+    focused=null; goal.target.set(0,0,0); goal.radius=defR;
+    rings.forEach(r=>{ r.material.opacity=0.28; }); card.classList.remove('on'); setPart(0); renderLadder(-1);
+    const box=$('protParts');
+    if(box) box.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed', k===0));
+  }
+
+  // ---------- Camera, zoom, pan and picking ----------
+  const cam={theta:0.6, phi:1.2, radius:14, target:new V()}, goal={theta:0.6, phi:1.2, radius:14, target:new V()};
+  const R_MIN=1.5, R_MAX=200;
+  let dragging=false, moved=0, mode='orbit', hovered=null, focused=null, lastHover=null, userZoomed=false, pinch=null;
+  let lastX=0, lastY=0;
+  const ptrs=new Map();
+  const mouse=new THREE.Vector2(9,9), ray=new THREE.Raycaster();
+  ray.near=0.01;
+  const pickables=()=>
+    view==='table' ? tableCells :
+    view==='protein' ? protGroups :
+    view!=='atom' ? (spaceFill?molAtoms:molAtoms.concat(molBonds)) :
+    (cloudMode?nucleusParts:nucleusParts.concat(electrons));
+
+  function zoomBy(f){ goal.radius=clamp(goal.radius*f, R_MIN, R_MAX); userZoomed=true; }
+  function panBy(dx,dy){
+    if(view!=='table') return;
+    const s=2*goal.radius*Math.tan(camera.fov*Math.PI/360)/innerHeight;
+    const right=new V().setFromMatrixColumn(camera.matrixWorld,0);
+    const up=new V().setFromMatrixColumn(camera.matrixWorld,1);
+    goal.target.addScaledVector(right,-dx*s).addScaledVector(up,dy*s);
+    goal.target.x=clamp(goal.target.x,-TW/2,TW/2);
+    goal.target.y=clamp(goal.target.y,-TH/2,TH/2);
+    goal.target.z=0;
+  }
+
+  canvas.addEventListener('pointerdown', e=>{
+    closeMenu(); closeUIMenu();
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+    canvas.classList.add('drag');
+    if(ptrs.size===1){
+      dragging=true; moved=0; mode=(view==='table'&&!e.shiftKey)?'pan':'orbit';
+      lastX=e.clientX; lastY=e.clientY;
+    } else {
+      moved=99; pinch=null;
+      if(ptrs.size===2){
+        const [a,b]=[...ptrs.values()];
+        pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2};
+      }
+    }
+  });
+  canvas.addEventListener('pointermove', e=>{
+    mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size>=2){
+      moved=99;
+      const [a,b]=[...ptrs.values()];
+      const d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      if(pinch){ zoomBy(pinch.d/d); panBy(mx-pinch.mx, my-pinch.my); }
+      pinch={d,mx,my};
+      return;
+    }
+    if(!dragging) return;
+    const dx=e.clientX-lastX, dy=e.clientY-lastY;
+    moved+=Math.abs(dx)+Math.abs(dy);
+    if(mode==='pan') panBy(dx,dy);
+    else { goal.theta-=dx*0.006; goal.phi=clamp(goal.phi-dy*0.006,0.5,2.5); }
+    lastX=e.clientX; lastY=e.clientY;
+  });
+  function pickHit(){
+    ray.setFromCamera(mouse, camera);
+    const hits = ray.intersectObjects(pickables(), view==='protein');
+    if(view === 'protein'){
+      return hits.find(h => h.object.userData.kind === 'res' && h.object.parent && h.object.parent.visible) || null;
+    }
+    return hits[0] || null;
+  }
+  function endPtr(e, tap){
+    ptrs.delete(e.pointerId);
+    if(ptrs.size<2) pinch=null;
+    if(ptrs.size===1){ const p=[...ptrs.values()][0]; lastX=p.x; lastY=p.y; }
+    if(ptrs.size>0) return;
+    dragging=false; canvas.classList.remove('drag');
+    if(!tap || moved>=5) return;
+    mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+    const hit = pickHit();
+    if(view==='table'){
+      if(hit) handleTableTap(hit.object.userData.Z);
+      else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
+    } else if(view==='protein'){
+      hit ? focus(hit.object) : reset();
+    } else {
+      hit ? focus(hit.object) : reset();
+    }
+  }
+  canvas.addEventListener('pointerup', e=>endPtr(e,true));
+  canvas.addEventListener('pointercancel', e=>endPtr(e,false));
+
+  canvas.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const d=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?innerHeight:1);
+    zoomBy(Math.exp(d*0.0012));
+  }, {passive:false});
+
+  $('zoomIn').addEventListener('click', ()=>zoomBy(0.72));
+  $('zoomOut').addEventListener('click', ()=>zoomBy(1/0.72));
+  $('resetTable').addEventListener('click', ()=>{
+    goal.theta=0; goal.phi=1.26; goal.target.set(0,0,0); goal.radius=tableFit(); userZoomed=false;
+    clearTableSelection(); lastHover=null; card.classList.remove('on');
+  });
+
+  function resize(){
+    renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+    if(view==='table' && tableBuilt){ defR=tableFit(); if(!userZoomed) goal.radius=defR; }
+  }
+  addEventListener('resize', resize);
+  addEventListener('orientationchange', ()=>setTimeout(resize,220));
+  if(window.visualViewport) visualViewport.addEventListener('resize', ()=>setTimeout(resize,140));
+  resize();
+
+  const clock=new THREE.Clock();
+  build(5); setView('atom'); applyUI();
+
+  function tick(){
+    const dt=Math.min(clock.getDelta(),0.1), t=clock.getElapsedTime(), speed=+slider.value;
+
+    // Protein assembly progress (runs before visuals)
+    if(view === 'protein' && protAnim.active && !protAnim.paused){
+      const prevP = protAnim.progress;
+      protAnim.progress = Math.min(protLen, protAnim.progress + dt * protAnim.speed);
+      if(protAnim.progress > prevP){
+        const pf = Math.floor(prevP), cf = Math.floor(protAnim.progress);
+        for(let i = pf + 1; i <= cf; i++){ if(i > 0 && i < protLen) addPeptideFlash(i); }
+        protAnim.prevProgress = protAnim.progress;
+      }
+    }
+
+    if(view==='atom'){
+      electrons.forEach(e=>{ const d=e.userData; d.angle+=dt*d.speed*speed; e.position.set(Math.cos(d.angle)*d.r,0,Math.sin(d.angle)*d.r); });
+      if(!reduceMotion){
+        nucleusParts.forEach(m=>{ const d=m.userData,w=0.008; m.position.set(d.base0.x+Math.sin(t*3+d.phase)*w, d.base0.y+Math.cos(t*2.6+d.phase)*w, d.base0.z+Math.sin(t*3.3+d.phase*1.7)*w); });
+        clouds.forEach((c,i)=>{ c.rotation.y+=dt*0.05*(i+1); });
+      }
+    } else if(view==='mol' || view==='amino'){
+      molRoot.rotation.y+=dt*speed*0.3;
+    } else if(view==='protein'){
+      if(!focused) protRoot.rotation.y += dt*speed*0.18;
+    }
+    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='protein'?protRoot:molRoot;
+    const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
+
+    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='protein') goal.theta+=dt*0.08;
+    const k=1-Math.pow(0.001,dt);
+    if(focused) focused.getWorldPosition(goal.target);
+    cam.theta+=(goal.theta-cam.theta)*k; cam.phi+=(goal.phi-cam.phi)*k; cam.radius+=(goal.radius-cam.radius)*k; cam.target.lerp(goal.target,k);
+    camera.position.set(cam.target.x+cam.radius*Math.sin(cam.phi)*Math.sin(cam.theta), cam.target.y+cam.radius*Math.cos(cam.phi), cam.target.z+cam.radius*Math.sin(cam.phi)*Math.cos(cam.theta));
+    camera.lookAt(cam.target);
+
+    // Hover
+    ray.setFromCamera(mouse,camera);
+    if(view === 'protein'){
+      const hits = ray.intersectObjects(protGroups, true);
+      hovered = hits.find(h => h.object.userData.kind === 'res' && h.object.parent && h.object.parent.visible) || null;
+    } else {
+      hovered = ray.intersectObjects(pickables())[0] || null;
+    }
+    canvas.classList.toggle('hover', !!hovered && !dragging);
+
+    if(view==='table'){
+      // Tiles swell on zoom
+      const zt = clamp((defR/Math.max(cam.radius,0.001) - 1)/1.6, 0, 1);
+      const grow = 1 + 0.16*(zt*zt*(3-2*zt));
+      const hv = hovered ? hovered.object : null;
+      const dir = SECTION_DIR[selectedSection] || null;
+      const lk = 1 - Math.pow(0.0001, dt); // ~10% per frame at 60fps
+
+      tableCells.forEach(o=>{
+        const u = o.userData;
+        const on = (hv === o);
+        u.hover += ((on?1.05:1) - u.hover)*0.18;
+        u.lift += ((on?0.24:0) - u.lift)*0.18;
+
+        let tx = u.baseX, ty = u.baseY, tz = u.lift;
+        if(dir && u.section === selectedSection){
+          const extra = (u.Z === selectedZ) ? 1.0 : 0;
+          tx += dir.x * (SECTION_DIST + extra);
+          ty += dir.y * (SECTION_DIST + extra);
+          tz += dir.z * (SECTION_DIST + extra);
+        }
+
+        o.position.x += (tx - o.position.x)*lk;
+        o.position.y += (ty - o.position.y)*lk;
+        o.position.z += (tz - o.position.z)*lk;
+
+        o.scale.setScalar(grow * u.hover);
+        u.body.emissiveIntensity = clamp((u.hover-1)*4 + (u.Z===selectedZ ? 0.30 : 0), 0, 0.7);
+      });
+    } else if(view==='protein'){
+      protGroups.forEach(g=>{
+        const u = g.userData;
+        const reveal = clamp(protAnim.progress - u.idx, 0, 1);
+        const ease = reveal < 1 ? 1 + 2.70158*Math.pow(reveal-1,3) + 1.70158*Math.pow(reveal-1,2) : 1;
+        g.visible = reveal > 0.001;
+        const on = (hovered && hovered.object.parent === g) || (focused && focused.parent === g);
+        u.hover += ((on?1.25:1) - u.hover)*0.2;
+        g.scale.setScalar(Math.max(0, ease) * u.hover);
+      });
+      if(protMesh && protMesh.geometry.index){
+        const frac = protAnim.progress / protLen;
+        protMesh.geometry.setDrawRange(0, Math.floor(protMesh.geometry.index.count * frac));
+      }
+      // Fade peptide flashes
+      if(protAnim.flashes.length){
+        protAnim.flashes = protAnim.flashes.filter(f => {
+          f.life -= dt * 2.5;
+          if(f.life <= 0){
+            f.mesh.geometry.dispose();
+            f.mesh.material.dispose();
+            protRoot.remove(f.mesh);
+            return false;
+          }
+          f.mesh.material.opacity = f.life * 0.95;
+          f.mesh.scale.setScalar(0.6 + (1-f.life)*1.6);
+          return true;
+        });
+      }
+      const done = Math.floor(protAnim.progress);
+      if(done !== lastProtDone){
+        lastProtDone = done;
+        if(done < protLen) $('sub').textContent = 'Assembling · ' + done + ' of ' + protLen + ' amino acids bonded';
+        else $('sub').textContent = 'Trp-cage · ' + protLen + ' residues · drag to spin, tap a residue for details';
+      }
+    } else {
+      const list = pickables();
+      list.forEach(o=>{
+        const u=o.userData, want=((hovered&&hovered.object===o)||focused===o)?1.3:1;
+        u.hover+=(want-u.hover)*0.2;
+        if(u.kind==='bond') o.scale.set(u.bx*u.hover,u.len,u.bx*u.hover);
+        else o.scale.setScalar((u.base||1)*u.hover);
+      });
+    }
+
+    // Card updates
+    if(view==='table'){
+      const o = hovered ? hovered.object : null;
+      if(o !== lastHover){
+        lastHover = o;
+        if(o){
+          const Z = o.userData.Z, el = ELS[Z-1];
+          showCard(el[1], [['Symbol',el[0]],['Atomic number',Z],['Mass number',el[2]],['Type',CATS[catOf(Z)]]], 'Tap again to open this atom in 3D.');
+        } else if(selectedSection){
+          const info = SECTION_INFO[selectedSection];
+          if(info) showCard(info.name, [], info.desc + ' Tap the same element again to open its atom.');
+          else card.classList.remove('on');
+        } else card.classList.remove('on');
+      }
+    } else if(view==='protein'){
+      const o = hovered ? hovered.object : null;
+      if(o !== lastHover){
+        lastHover = o;
+        if(o){
+          const d = o.userData;
+          showCard(AA_NAME[d.res]||d.res, [['Residue', (d.idx+1)+' of '+protLen],['Letter', d.res],['Class', AA_TYPE[d.res]||'—']], AA_DESC[d.res]||'');
+        } else card.classList.remove('on');
+      }
+    }
+
+    renderer.render(scene,camera);
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+</script>
+</body>
+</html>
