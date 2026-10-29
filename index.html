@@ -19,10 +19,19 @@ html,body{height:100%;margin:0}
 body{background:radial-gradient(ellipse at 50% 42%,var(--bg1),var(--bg2));color:var(--ink);font-family:Outfit,system-ui,sans-serif;overflow:hidden}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 canvas.hover{cursor:pointer} canvas.drag{cursor:grabbing}
-header{position:fixed;top:0;left:0;right:0;padding:calc(18px + env(safe-area-inset-top,0px)) calc(22px + env(safe-area-inset-right,0px)) 0 calc(22px + env(safe-area-inset-left,0px));pointer-events:none}
+
+/* header now also hosts the info card, which sits at the top of the screen */
+header{position:fixed;top:0;left:0;right:0;padding:calc(18px + env(safe-area-inset-top,0px)) calc(22px + env(safe-area-inset-right,0px)) 0 calc(22px + env(safe-area-inset-left,0px));pointer-events:none;z-index:3}
 h1{margin:0;font-size:clamp(30px,7vw,54px);font-weight:600;letter-spacing:-.02em;line-height:1;max-width:70%}
 header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:70%}
 .glass{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px}
+
+#card{margin-top:12px;padding:11px 15px;max-width:340px;opacity:0;transform:translateY(-8px);transition:opacity .25s,transform .25s}
+#card.on{opacity:1;transform:none}
+#card b{display:block;font-size:16px;margin-bottom:2px}
+#card dl{margin:5px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;color:var(--muted)}
+#card dd{margin:0;color:var(--ink)}
+#card span{display:block;margin-top:6px;font-size:12.5px;line-height:1.4;color:var(--muted)}
 
 /* ---------- top-right tools ---------- */
 #menuWrap{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));z-index:20;display:flex;flex-direction:column;align-items:flex-end}
@@ -56,12 +65,6 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:70%}
 
 /* ---------- bottom ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;padding:0 calc(14px + env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(14px + env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px}
-#card{align-self:flex-start;padding:12px 16px;max-width:340px;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
-#card.on{opacity:1;transform:none}
-#card b{display:block;font-size:17px;margin-bottom:3px}
-#card dl{margin:6px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;color:var(--muted)}
-#card dd{margin:0;color:var(--ink)}
-#card span{display:block;margin-top:8px;font-size:13px;line-height:1.4;color:var(--muted)}
 .bar{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
 .sec{display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -69,8 +72,8 @@ footer{position:fixed;left:0;right:0;bottom:0;padding:0 calc(14px + env(safe-are
 .legend span{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .legend i{width:11px;height:11px;border-radius:50%;display:block;flex:none}
 .legend b{font-variant-numeric:tabular-nums}
-#tableLegend{flex-wrap:nowrap;overflow-x:auto;font-size:12px;padding-bottom:2px;scrollbar-width:none}
-#tableLegend::-webkit-scrollbar{display:none}
+#tableLegend,#protLegend{flex-wrap:nowrap;overflow-x:auto;font-size:12px;padding-bottom:2px;scrollbar-width:none}
+#tableLegend::-webkit-scrollbar,#protLegend::-webkit-scrollbar{display:none}
 .switch[aria-checked="true"],.chip[aria-pressed="true"],.chip[aria-expanded="true"]{background:var(--ink);color:#0b1b2a;border-color:var(--ink)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -85,7 +88,9 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .btn:focus-visible,.chip:focus-visible,input:focus-visible,#menu button:focus-visible,#uiMenu button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- panel visibility ---------- */
-body.hide-header header{display:none!important}
+body.hide-header header h1,
+body.hide-header header p{display:none!important}
+body.hide-header #card{margin-top:0}
 body.hide-ladder #ladder{display:none!important}
 body.hide-panel footer .bar{display:none!important}
 body.hide-card #card{display:none!important}
@@ -99,6 +104,10 @@ body.focus #menuWrap{display:none!important}
   header{padding:calc(10px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px)) 0 calc(16px + env(safe-area-inset-left,0px))}
   h1{font-size:clamp(17px,3.4vw,26px);max-width:56%}
   header p{font-size:11.5px;margin-top:3px;max-width:56%}
+  #card{margin-top:7px;padding:8px 11px;max-width:340px;border-radius:11px}
+  #card b{font-size:14px;margin-bottom:1px}
+  #card dl{font-size:11.5px;gap:1px 9px;margin-top:3px}
+  #card span{font-size:11.5px;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #menuWrap{top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px))}
   #tbRow{gap:6px}
   .btn{padding:5px 11px;font-size:12px}
@@ -117,22 +126,19 @@ body.focus #menuWrap{display:none!important}
   .legend{font-size:12px;gap:9px}
   .legend i{width:9px;height:9px}
   .speed{font-size:12px;gap:9px}
-  #card{padding:9px 12px;max-width:320px;border-radius:11px}
-  #card b{font-size:15px;margin-bottom:2px}
-  #card dl{font-size:12px;gap:1px 10px;margin-top:4px}
-  #card span{font-size:12px;margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }
-/* Landscape: card sits beside the controls instead of above them */
 @media (orientation:landscape) and (max-height:560px){
-  footer{flex-direction:row;align-items:flex-end;gap:10px}
-  #card{align-self:flex-end;max-width:34vw;flex:0 1 auto}
-  .bar{flex:1 1 0;min-width:0}
+  #card{max-width:44vw}
 }
 </style>
 </head>
 <body>
 <canvas id="c" aria-label="Interactive 3D viewer"></canvas>
-<header><h1 id="title"></h1><p id="sub"></p></header>
+<header>
+  <h1 id="title"></h1>
+  <p id="sub"></p>
+  <div id="card" class="glass" role="status"><b></b><dl id="dl"></dl><span></span></div>
+</header>
 
 <div id="menuWrap">
   <div id="tbRow">
@@ -143,6 +149,7 @@ body.focus #menuWrap{display:none!important}
     <button data-view="atom">Atom model</button>
     <button data-view="mol">Hydrocarbons</button>
     <button data-view="amino">Amino acids</button>
+    <button data-view="protein">Proteins</button>
     <button data-view="table">Periodic table</button>
   </div>
   <div id="uiMenu" class="glass" hidden>
@@ -158,7 +165,6 @@ body.focus #menuWrap{display:none!important}
 <div id="ladder" class="glass" aria-label="Energy levels"></div>
 
 <footer>
-  <div id="card" class="glass" role="status"><b></b><dl id="dl"></dl><span></span></div>
   <div class="bar glass">
     <div class="sec" id="atomUI">
       <div class="row">
@@ -179,6 +185,12 @@ body.focus #menuWrap{display:none!important}
       </div>
       <div class="chips" id="pickHeads" role="group" aria-label="Categories"></div>
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
+    </div>
+    <div class="sec" id="protUI" hidden>
+      <div class="row">
+        <div class="legend" id="protLegend"></div>
+      </div>
+      <div class="chips" id="protParts" role="group" aria-label="Focus on part of the protein"></div>
     </div>
     <div class="sec" id="tableUI" hidden>
       <div class="legend" id="tableLegend" aria-label="Element categories"></div>
@@ -268,18 +280,15 @@ body.focus #menuWrap{display:none!important}
   const COL = {C:0xff9f1c,H:0x22d3ee,N:0x4361ee,O:0xff3b3b,S:0xffe14d};
   const RB = {C:.38,H:.24,N:.36,O:.34,S:.45}, RF = {C:.85,H:.6,N:.8,O:.75,S:1};
   const HEX = c => '#'+c.toString(16).padStart(6,'0');
-  // Hydrocarbons: groups are Acyclic and Cyclic
   const HYDRO = [['Methane',[],'Acyclic'],['Ethane',[1],'Acyclic'],['Propane',[1,1],'Acyclic'],['Butane',[1,1,1],'Acyclic'],['Pentane',[1,1,1,1],'Acyclic'],
     ['Hexane',[1,1,1,1,1],'Acyclic'],['Ethene',[2],'Acyclic'],['Propene',[2,1],'Acyclic'],['1-Butene',[2,1,1],'Acyclic'],['Ethyne',[3],'Acyclic'],['Propyne',[3,1],'Acyclic'],
     ['Cyclopropane','ring3','Cyclic'],['Cyclobutane','ring4','Cyclic'],['Cyclopentane','ring5','Cyclic'],['Cyclohexane','ring6c','Cyclic'],['Benzene','ring6a','Cyclic']];
-  // Amino acids as SMILES (neutral form, no stereo marks), grouped by side chain type
   const AMINO = [['Glycine','NCC(=O)O','Nonpolar'],['Alanine','NC(C)C(=O)O','Nonpolar'],['Valine','NC(C(C)C)C(=O)O','Nonpolar'],['Leucine','NC(CC(C)C)C(=O)O','Nonpolar'],
     ['Isoleucine','NC(C(C)CC)C(=O)O','Nonpolar'],['Proline','N1CCCC1C(=O)O','Nonpolar'],['Methionine','NC(CCSC)C(=O)O','Nonpolar'],['Phenylalanine','NC(Cc1=cc=cc=c1)C(=O)O','Nonpolar'],
     ['Serine','NC(CO)C(=O)O','Polar'],['Threonine','NC(C(C)O)C(=O)O','Polar'],['Cysteine','NC(CS)C(=O)O','Polar'],['Tyrosine','NC(Cc1=cc=c(O)c=c1)C(=O)O','Polar'],
     ['Asparagine','NC(CC(N)=O)C(=O)O','Polar'],['Glutamine','NC(CCC(N)=O)C(=O)O','Polar'],
     ['Aspartic acid','NC(CC(=O)O)C(=O)O','Charged'],['Glutamic acid','NC(CCC(=O)O)C(=O)O','Charged'],['Lysine','NC(CCCCN)C(=O)O','Charged'],['Arginine','NC(CCCNC(=N)N)C(=O)O','Charged']];
   const LIST = {mol:HYDRO.map(h=>({name:h[0],def:h[1],group:h[2]})), amino:AMINO.map(a=>({name:a[0],smi:a[1],group:a[2]}))};
-  // Bond length (angstroms) and average bond energy (kJ/mol)
   const BI = {CC1:[1.54,347],CC2:[1.34,614],CC3:[1.2,839],CCa:[1.4,518],CH1:[1.09,413],CN1:[1.47,305],CN2:[1.29,615],CO1:[1.43,358],CO2:[1.23,745],CS1:[1.82,259],HN1:[1.01,391],HO1:[.96,463],HS1:[1.34,339]};
   const bondInfo = (a,b,o,ar) => BI[[a,b].sort().join('')+(ar?'a':o)] || [1.5,350];
 
@@ -295,8 +304,8 @@ body.focus #menuWrap{display:none!important}
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
-  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group();
-  scene.add(atomRoot, molRoot, tableRoot);
+  const atomRoot = new THREE.Group(), molRoot = new THREE.Group(), tableRoot = new THREE.Group(), protRoot = new THREE.Group();
+  scene.add(atomRoot, molRoot, tableRoot, protRoot);
   const partGeo = new THREE.SphereGeometry(0.2, 24, 16), partGeoLo = new THREE.SphereGeometry(0.2, 12, 8), eGeo = new THREE.SphereGeometry(0.14, 16, 12);
   const unitGeo = new THREE.SphereGeometry(1, 32, 20), cylGeo = new THREE.CylinderGeometry(0.07,0.07,1,12);
   const mP = new THREE.MeshStandardMaterial({color:0xff5a6e, emissive:0x4a0f18, roughness:.4});
@@ -308,6 +317,7 @@ body.focus #menuWrap{display:none!important}
 
   let view='atom', nucleusParts=[], electrons=[], rings=[], clouds=[], cloudMode=false, born=0, defR=14, cur=null, nucR=0.3;
   let molAtoms=[], molBonds=[], spaceFill=false, openGroup=null, curIdx={mol:0,amino:0};
+  let protAtoms=[], protCA=[], protMesh=null, protSeq='', protLen=0;
 
   // ---------- Atom ----------
   function build(i){
@@ -467,7 +477,7 @@ body.focus #menuWrap{display:none!important}
     return {A,L};
   }
 
-  // ---------- Amino acid geometry: parse SMILES, add hydrogens, then relax distances in 3D ----------
+  // ---------- Amino acid geometry ----------
   function aminoData(smi, seed){
     const at=[], bd=[], VAL={C:4,N:3,O:2,S:2}; let prev=-1, ord=1; const stack=[], ring={};
     for(const ch of smi){
@@ -503,7 +513,6 @@ body.focus #menuWrap{display:none!important}
         if(l<2.3){ v.multiplyScalar((2.3-l)/l*0.25); P[i].sub(v); P[j].add(v); }
       }
     }
-    // Make it the L form: with N, carbonyl C and the side chain around the alpha carbon, the triple product must be positive
     const isCarbonyl=y=>at[y].el==='C' && bd.some(b=>b[2]===2 && ((b[0]===y&&at[b[1]].el==='O')||(b[1]===y&&at[b[0]].el==='O')));
     const ca=nb[0].find(x=>at[x].el==='C' && nb[x].some(isCarbonyl));
     if(ca!==undefined){
@@ -516,7 +525,6 @@ body.focus #menuWrap{display:none!important}
     return {A:at.map((a,i)=>({el:a.el,pos:P[i],hyb:a.hyb})), L:bd};
   }
 
-  // ---------- Molecule viewer (shared by Hydrocarbons and Amino acids) ----------
   function buildMol(i){
     clearRoot(molRoot); molAtoms=[]; molBonds=[];
     const it=LIST[view][i], hydro=view==='mol', data=hydro?molData(it.def):aminoData(it.smi,i+1), A=data.A, L=data.L, WORD={1:'single',2:'double',3:'triple'};
@@ -556,7 +564,6 @@ body.focus #menuWrap{display:none!important}
     molAtoms.forEach(m=>{ m.userData.base=(spaceFill?RF:RB)[m.userData.el]; });
     molBonds.forEach(b=>b.visible=!spaceFill);
   }
-  // Categories stay hidden until their name is tapped
   function renderPick(){
     const heads=$('pickHeads'), box=$('pickItems'), list=LIST[view];
     heads.innerHTML=''; box.innerHTML=''; box.hidden=!openGroup;
@@ -577,6 +584,174 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
+  // ---------- Protein: Trp-cage miniprotein ----------
+  const PROT = {
+    name: 'Trp-cage',
+    seq: 'NLYIQWLKDGGPSSGRPPPS',
+    desc: 'The smallest known folded protein. 20 residues with a short α-helix, a 3₁₀-helix and a polyproline II tail.'
+  };
+  const SS_STR = 'XHHHHHHHTTGGGGXXPPPP';
+  const AA_NAME = {N:'Asparagine',L:'Leucine',Y:'Tyrosine',I:'Isoleucine',Q:'Glutamine',W:'Tryptophan',K:'Lysine',D:'Aspartic acid',G:'Glycine',P:'Proline',S:'Serine',R:'Arginine'};
+  const AA_TYPE = {N:'Polar',L:'Hydrophobic',Y:'Aromatic',I:'Hydrophobic',Q:'Polar',W:'Aromatic',K:'Basic (+)',D:'Acidic (−)',G:'Special (tiny)',P:'Special (proline)',S:'Polar',R:'Basic (+)'};
+  const AA_DESC = {
+    N:'Asparagine — polar side chain, can hydrogen-bond.',
+    L:'Leucine — hydrophobic, packs into the protein core.',
+    Y:'Tyrosine — aromatic with a hydroxyl group.',
+    I:'Isoleucine — hydrophobic, branched side chain.',
+    Q:'Glutamine — polar amide side chain.',
+    W:'Tryptophan — the largest amino acid. Its indole ring forms the hydrophobic cage at the heart of this protein.',
+    K:'Lysine — basic, positively charged at neutral pH.',
+    D:'Aspartic acid — acidic, negatively charged.',
+    G:'Glycine — the smallest amino acid; adds flexibility at turns.',
+    P:'Proline — a rigid five-membered ring that kinks the backbone.',
+    S:'Serine — small and polar, can be phosphorylated.',
+    R:'Arginine — basic, positively charged.'
+  };
+  const PROT_PARTS = [
+    {name:'Whole protein', idx:null},
+    {name:'α-helix', idx:[1,2,3,4,5,6,7]},
+    {name:'3₁₀-helix', idx:[10,11,12,13]},
+    {name:'PPII tail', idx:[16,17,18,19]}
+  ];
+
+  // NeRF: place D such that |CD|=bond, ∠BCD=angle, dihedral ABCD=torsion
+  function placeAtom(A, B, C, bond, angleDeg, torsionDeg){
+    const ang=angleDeg*Math.PI/180, tor=torsionDeg*Math.PI/180;
+    const bc=new V().subVectors(C,B).normalize();
+    const ab=new V().subVectors(B,A);
+    const n=new V().crossVectors(ab,bc).normalize();
+    const m=new V().crossVectors(n,bc).normalize();
+    const dir=new V()
+      .addScaledVector(bc, -Math.cos(ang))
+      .addScaledVector(m, Math.sin(ang)*Math.cos(tor))
+      .addScaledVector(n, Math.sin(ang)*Math.sin(tor));
+    return C.clone().addScaledVector(dir, bond);
+  }
+
+  function buildProtein(){
+    clearRoot(protRoot); protAtoms=[]; protCA=[]; protMesh=null;
+    const seq=PROT.seq, n=seq.length; protSeq=seq; protLen=n;
+    // phi/psi per residue (deg). Proline φ locked to −63°.
+    const PHI=new Array(n).fill(0), PSI=new Array(n).fill(0);
+    for(let i=0;i<n;i++){
+      const s=SS_STR[i];
+      let phi, psi;
+      if(s==='H'){ phi=-57; psi=-47; }
+      else if(s==='T'){ phi=-60; psi=-30; }
+      else if(s==='G'){ phi=-49; psi=-26; }
+      else if(s==='X'){ phi=-80; psi=150; }
+      else { phi=-75; psi=145; }
+      if(seq[i]==='P') phi=-63;
+      PHI[i]=phi; PSI[i]=psi;
+    }
+    // Backbone: place N, CA, C for each residue
+    const N=[new V(0,0,0)], CA=[new V(1.458,0,0)];
+    const ang=111.2*Math.PI/180;
+    C_1init:
+    {
+      const dir=new V(Math.cos(ang), Math.sin(ang), 0); // ≈(0.361,0.932,0)
+      var C0 = CA[0].clone().addScaledVector(dir, 1.525);
+    }
+    const C=[C0];
+    for(let i=0;i<n-1;i++){
+      N.push(placeAtom(N[i], CA[i], C[i], 1.329, 116.2, PSI[i]));
+      CA.push(placeAtom(CA[i], C[i], N[i+1], 1.458, 121.7, 180));
+      C.push(placeAtom(C[i], N[i+1], CA[i+1], 1.525, 111.2, PHI[i+1]));
+    }
+    // Store CA positions
+    CA.forEach(p=>protCA.push(p.clone()));
+
+    // Backbone tube
+    const curve = new THREE.CatmullRomCurve3(CA.map(p=>p.clone()), false, 'catmullrom', 0.5);
+    const tubeGeo = new THREE.TubeGeometry(curve, 220, 0.32, 10, false);
+    const tubeMat = new THREE.MeshStandardMaterial({color:0x9fb3c2, emissive:0x9fb3c2, emissiveIntensity:0.08, roughness:0.55, metalness:0.15});
+    protMesh = new THREE.Mesh(tubeGeo, tubeMat);
+    protRoot.add(protMesh);
+
+    // Side chains — a small sphere at each CA, offset perpendicular to the local tangent
+    const RCOL = {
+      L:0xff9f1c, I:0xff9f1c, V:0xff9f1c, A:0xff9f1c, M:0xff9f1c,
+      F:0xc18bff, W:0xc18bff, Y:0xc18bff,
+      S:0x22d3ee, T:0x22d3ee, C:0x22d3ee, N:0x22d3ee, Q:0x22d3ee,
+      K:0x4361ee, R:0x4361ee, H:0x4361ee,
+      D:0xff3b3b, E:0xff3b3b,
+      G:0x9fb3c2, P:0xa07450
+    };
+    const RSZ = {G:0.24, A:0.34, V:0.52, L:0.58, I:0.58, M:0.62, F:0.68, W:0.82, Y:0.72,
+      P:0.48, S:0.38, T:0.46, C:0.42, N:0.48, Q:0.58,
+      K:0.72, R:0.78, H:0.62, D:0.52, E:0.58};
+    const scGeoCache = {};
+    for(let i=0;i<n;i++){
+      const res=seq[i], sz=RSZ[res]||0.48, col=RCOL[res]||0xff9f1c;
+      const prev=CA[Math.max(0,i-1)], next=CA[Math.min(n-1,i+1)];
+      const tangent=next.clone().sub(prev); if(tangent.lengthSq()<1e-6) tangent.set(0,1,0); tangent.normalize();
+      let perp=new V().crossVectors(tangent, new V(0,1,0));
+      if(perp.lengthSq()<0.01) perp=new V().crossVectors(tangent, new V(1,0,0));
+      perp.normalize();
+      const offset = res==='P' ? 0.35 : (0.55 + sz*0.55);
+      const pos = CA[i].clone().addScaledVector(perp, offset);
+      if(!scGeoCache[sz]) scGeoCache[sz]=new THREE.SphereGeometry(sz, 16, 12);
+      const mat=new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:0.22, roughness:0.4});
+      const sph=new THREE.Mesh(scGeoCache[sz], mat);
+      sph.position.copy(pos);
+      sph.userData={kind:'res', idx:i, res, col, sz, hover:1, base:1};
+      protRoot.add(sph); protAtoms.push(sph);
+      // short bond from CA to the side-chain sphere
+      const dir=pos.clone().sub(CA[i]), len=dir.length(); dir.normalize();
+      const bgeo=new THREE.CylinderGeometry(0.09, 0.09, 1, 6);
+      const bmat=new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:0.1, roughness:0.5});
+      const bond=new THREE.Mesh(bgeo, bmat);
+      bond.position.copy(CA[i].clone().add(pos).multiplyScalar(0.5));
+      bond.quaternion.setFromUnitVectors(YA, dir);
+      bond.scale.set(1, len, 1);
+      protRoot.add(bond);
+    }
+
+    // Center the whole protein at the origin so it spins cleanly
+    const bb=new THREE.Box3().setFromObject(protRoot);
+    const ctr=bb.getCenter(new V());
+    protRoot.children.forEach(c=>c.position.sub(ctr));
+    protRoot.updateMatrixWorld(true);
+    protCA=protCA.map(p=>p.clone().sub(ctr));
+
+    // Fit camera
+    const sz2=new THREE.Box3().setFromObject(protRoot).getSize(new V());
+    defR = Math.max(sz2.x, sz2.y, sz2.z) * 1.55 + 4;
+
+    // Legend
+    $('protLegend').innerHTML = [
+      ['Hydrophobic',0xff9f1c],['Polar',0x22d3ee],['Aromatic',0xc18bff],
+      ['Basic (+)',0x4361ee],['Acidic (−)',0xff3b3b],['Special',0x9fb3c2]
+    ].map(([nm,c])=>'<span><i style="background:'+HEX(c)+'"></i>'+nm+'</span>').join('');
+
+    // Part chips
+    const box=$('protParts'); box.innerHTML='';
+    PROT_PARTS.forEach((p,i)=>{
+      const b=document.createElement('button'); b.className='chip wide'; b.type='button'; b.textContent=p.name;
+      b.setAttribute('aria-pressed', i===0);
+      b.addEventListener('click', ()=>{
+        box.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed', k===i));
+        focusProteinPart(p.idx);
+      });
+      box.appendChild(b);
+    });
+
+    $('title').textContent=PROT.name;
+    $('sub').textContent='Miniprotein · '+n+' residues · drag to spin, tap a residue for details';
+    enterView();
+  }
+  function focusProteinPart(indices){
+    focused=null;
+    if(!indices){ reset(); return; }
+    const c=new V();
+    indices.forEach(i=>{ if(protCA[i]) c.add(protCA[i]); });
+    c.divideScalar(indices.length);
+    let r=0; indices.forEach(i=>{ if(protCA[i]) r=Math.max(r, protCA[i].distanceTo(c)); });
+    goal.target.copy(c);
+    goal.radius=Math.max(r*2.6, 7);
+    card.classList.remove('on');
+  }
+
   // ---------- Periodic table ----------
   const CATS=['Alkali metal','Alkaline earth','Transition metal','Post-transition','Metalloid','Nonmetal','Halogen','Noble gas','Lanthanide','Actinide'];
   const CATC=[0xf87171,0xfb923c,0x6366f1,0x2dd4bf,0xa78bfa,0x4ade80,0xa3e635,0xf472b6,0x38bdf8,0xe879f9];
@@ -594,7 +769,6 @@ body.focus #menuWrap{display:none!important}
     if([13,31,49,50,81,82,83,84,113,114,115,116].indexOf(Z)>=0) return 3;
     return 2;
   }
-  // Standard 18-column layout; lanthanides and actinides on their own rows
   function posOf(Z){
     if(Z===1) return [1,1];
     if(Z===2) return [18,1];
@@ -616,15 +790,11 @@ body.focus #menuWrap{display:none!important}
 
   function buildTable(){
     if(tableBuilt) return; tableBuilt=true;
-
-    // ---- One atlas holds every tile: crisp labels at any zoom, a single GPU texture ----
-    const MAXTEX = renderer.capabilities.maxTextureSize || 4096;
-    const SZ = MAXTEX>=4096 ? 4096 : 2048;
-    const cw = SZ/TCOLS, ch = SZ/TROWS, S = Math.min(cw,ch);
-    const cv = document.createElement('canvas'); cv.width=cv.height=SZ;
-    const g = cv.getContext('2d');
-    const FAM = 'Outfit, system-ui, sans-serif';
-
+    const MAXTEX=renderer.capabilities.maxTextureSize||4096;
+    const SZ=MAXTEX>=4096?4096:2048;
+    const cw=SZ/TCOLS, ch=SZ/TROWS, S=Math.min(cw,ch);
+    const cv=document.createElement('canvas'); cv.width=cv.height=SZ;
+    const g=cv.getContext('2d'), FAM='Outfit, system-ui, sans-serif';
     const roundRect=(x,y,w,h,r)=>{
       g.beginPath();
       g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.arcTo(x+w,y,x+w,y+r,r);
@@ -633,41 +803,28 @@ body.focus #menuWrap{display:none!important}
       g.lineTo(x,y+r); g.arcTo(x,y,x+r,y,r);
       g.closePath();
     };
-
     ELS.forEach((el,i)=>{
       const Z=i+1, base=CATC[catOf(Z)], col=i%TCOLS, row=(i/TCOLS)|0;
       const x=col*cw, y=row*ch, bg='#'+base.toString(16).padStart(6,'0');
-
-      // full-bleed category colour
       g.fillStyle=bg; g.fillRect(x,y,cw,ch);
-
-      // soft sheen so the flat face still reads as a lit surface
       const gr=g.createLinearGradient(x,y,x,y+ch);
       gr.addColorStop(0,'rgba(255,255,255,.22)');
       gr.addColorStop(.42,'rgba(255,255,255,.02)');
       gr.addColorStop(1,'rgba(0,0,0,.28)');
       g.fillStyle=gr; g.fillRect(x,y,cw,ch);
-
-      // inner hairline frame
       const inset=S*0.055;
       g.strokeStyle='rgba(255,255,255,.30)'; g.lineWidth=Math.max(2,S*0.011);
       roundRect(x+inset,y+inset,cw-inset*2,ch-inset*2,S*0.12); g.stroke();
-
-      // outer edge keeps neighbouring cubes visually separate
       const ew=Math.max(3,S*0.024);
       g.strokeStyle='rgba(4,10,18,.50)'; g.lineWidth=ew;
       g.strokeRect(x+ew/2,y+ew/2,cw-ew,ch-ew);
-
-      // ink colour picked from the tile luminance for guaranteed contrast
       const R=(base>>16)&255, G=(base>>8)&255, B=base&255;
       const L=(0.2126*R+0.7152*G+0.0722*B)/255;
-      const dark = L>0.62;
-      const ink  = dark?'rgba(8,20,32,.94)':'rgba(255,255,255,.97)';
-      const ink2 = dark?'rgba(8,20,32,.60)':'rgba(255,255,255,.66)';
-      const shad = dark?'rgba(255,255,255,.40)':'rgba(3,8,16,.45)';
-      const pad  = S*0.115;
-
-      // atomic number — small badge, top-left
+      const dark=L>0.62;
+      const ink=dark?'rgba(8,20,32,.94)':'rgba(255,255,255,.97)';
+      const ink2=dark?'rgba(8,20,32,.60)':'rgba(255,255,255,.66)';
+      const shad=dark?'rgba(255,255,255,.40)':'rgba(3,8,16,.45)';
+      const pad=S*0.115;
       const zS=S*0.145;
       g.font='600 '+zS+'px '+FAM;
       const zw=g.measureText(String(Z)).width;
@@ -676,40 +833,31 @@ body.focus #menuWrap{display:none!important}
       roundRect(bx,by,bw,bh,zS*0.34); g.fill();
       g.fillStyle=ink; g.textAlign='left'; g.textBaseline='middle';
       g.fillText(String(Z), bx+zS*0.31, by+bh*0.55);
-
-      // symbol — the hero of the tile
       g.font='600 '+(S*0.40)+'px '+FAM;
       g.textAlign='center'; g.textBaseline='middle';
       g.shadowColor=shad; g.shadowBlur=S*0.035; g.shadowOffsetY=S*0.012;
       g.fillStyle=ink;
       g.fillText(el[0], x+cw/2, y+ch*0.485);
       g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
-
-      // name — shrunk to fit instead of clipped
       const maxW=cw-pad*2.6;
       let nS=S*0.112;
       g.font='500 '+nS+'px '+FAM;
       while(nS>9 && g.measureText(el[1]).width>maxW){ nS-=1.5; g.font='500 '+nS+'px '+FAM; }
       g.fillStyle=ink;
       g.fillText(el[1], x+cw/2, y+ch*0.775);
-
-      // mass number — bottom-right, quiet
       g.font='500 '+(S*0.086)+'px '+FAM;
       g.textAlign='right'; g.textBaseline='alphabetic';
       g.fillStyle=ink2;
       g.fillText(String(el[2]), x+cw-pad*0.8, y+ch-pad*0.55);
     });
-
     const tex=new THREE.CanvasTexture(cv);
     tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
     tex.minFilter=THREE.LinearMipmapLinearFilter;
-
-    // ---- One cube per element, its label wrapped onto all four sides ----
     ELS.forEach((el,i)=>{
       const Z=i+1, p=posOf(Z), col=i%TCOLS, row=(i/TCOLS)|0;
       const u0=col/TCOLS, u1=(col+1)/TCOLS, v0=1-(row+1)/TROWS, v1=1-row/TROWS;
       const geo=new THREE.BoxGeometry(TC,TC,TC), uv=geo.attributes.uv;
-      [0,1,4,5].forEach(f=>{           // +x, -x, +z, -z faces
+      [0,1,4,5].forEach(f=>{
         for(let k=0;k<4;k++){
           const idx=f*4+k;
           uv.setXY(idx, u0+uv.getX(idx)*(u1-u0), v0+uv.getY(idx)*(v1-v0));
@@ -723,26 +871,17 @@ body.focus #menuWrap{display:none!important}
       m.userData={kind:'el', Z, hover:1, lift:0, body};
       tableRoot.add(m); tableCells.push(m);
     });
-
     $('tableLegend').innerHTML=CATS.map((n,i)=>'<span><i style="background:'+HEX(CATC[i])+'"></i>'+n+'</span>').join('');
-
-    // If the webfont was still loading, redraw once it is ready so the tiles stay on-brand
     if(!fontRetry && document.fonts && document.fonts.status!=='loaded'){
       fontRetry=true;
-      document.fonts.ready.then(()=>{
-        tableBuilt=false; tableCells.length=0; clearRoot(tableRoot); buildTable();
-      });
+      document.fonts.ready.then(()=>{ tableBuilt=false; tableCells.length=0; clearRoot(tableRoot); buildTable(); });
     }
   }
-
   function tableFit(){
     const vf=camera.fov*Math.PI/180, hf=2*Math.atan(Math.tan(vf/2)*camera.aspect);
     return Math.max((TW/2)/Math.tan(hf/2), (TH/2)/Math.tan(vf/2))*1.3;
   }
-  function openAtom(Z){
-    if(view!=='atom') setView('atom');
-    build(Z-1);
-  }
+  function openAtom(Z){ if(view!=='atom') setView('atom'); build(Z-1); }
 
   // ---------- Views and menu ----------
   function enterView(){
@@ -752,9 +891,10 @@ body.focus #menuWrap{display:none!important}
   }
   function setView(v){
     const prev=view;
-    view=v; const atom=v==='atom', table=v==='table';
-    atomRoot.visible=atom; molRoot.visible=!atom&&!table; tableRoot.visible=table;
-    $('atomUI').hidden=!atom; $('molUI').hidden=atom||table; $('tableUI').hidden=!table;
+    view=v;
+    const atom=v==='atom', table=v==='table', protein=v==='protein';
+    atomRoot.visible=atom; molRoot.visible=!atom&&!table&&!protein; tableRoot.visible=table; protRoot.visible=protein;
+    $('atomUI').hidden=!atom; $('molUI').hidden=atom||table||protein; $('protUI').hidden=!protein; $('tableUI').hidden=!table;
     $('speedRow').hidden=table; ladder.hidden=!atom;
     $('speedLabel').textContent=atom?'Electron speed':'Spin speed';
     openGroup=null; userZoomed=false;
@@ -766,11 +906,15 @@ body.focus #menuWrap{display:none!important}
       buildTable(); defR=tableFit();
       $('title').textContent='Periodic table';
       $('sub').textContent='Drag to pan · Shift-drag to orbit · scroll or pinch to zoom · click an element';
+    } else if(protein){
+      buildProtein();
     } else buildMol(curIdx[v]);
     if(table){ goal.theta=0; goal.phi=1.26; }
     else if(prev==='table'){ goal.theta=0.6; goal.phi=1.2; }
+    else { goal.theta=0.6; goal.phi=1.2; }
     document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v));
     enterView(); closeMenu(); closeUIMenu();
+    if(protein) buildProtein();
   }
   const menu=$('menu'), menuBtn=$('menuBtn'), uiMenu=$('uiMenu'), uiBtn=$('uiBtn');
   function closeMenu(){ menu.hidden=true; menuBtn.setAttribute('aria-expanded','false'); }
@@ -828,6 +972,12 @@ body.focus #menuWrap{display:none!important}
   function focus(o){
     focused=o; const d=o.userData;
     rings.forEach(r=>{ r.material.opacity=0.28; });
+
+    if(view==='protein'){
+      goal.radius=Math.min(goal.radius, 14);
+      showCard(AA_NAME[d.res]||d.res, [['Residue', (d.idx+1)+' of '+protLen],['Letter', d.res],['Class', AA_TYPE[d.res]||'—']], AA_DESC[d.res]||'An amino acid residue in the Trp-cage miniprotein.');
+      return;
+    }
     if(view!=='atom'){
       if(d.kind==='bond'){
         goal.radius=3.2;
@@ -852,6 +1002,8 @@ body.focus #menuWrap{display:none!important}
   function reset(){
     focused=null; goal.target.set(0,0,0); goal.radius=defR;
     rings.forEach(r=>{ r.material.opacity=0.28; }); card.classList.remove('on'); setPart(0); renderLadder(-1);
+    const box=$('protParts');
+    if(box) box.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed', k===0));
   }
 
   // ---------- Camera, zoom, pan and picking ----------
@@ -863,10 +1015,13 @@ body.focus #menuWrap{display:none!important}
   const ptrs=new Map();
   const mouse=new THREE.Vector2(9,9), ray=new THREE.Raycaster();
   ray.near=0.01;
-  const pickables=()=> view==='table' ? tableCells : view!=='atom' ? (spaceFill?molAtoms:molAtoms.concat(molBonds)) : (cloudMode?nucleusParts:nucleusParts.concat(electrons));
+  const pickables=()=>
+    view==='table' ? tableCells :
+    view==='protein' ? protAtoms :
+    view!=='atom' ? (spaceFill?molAtoms:molAtoms.concat(molBonds)) :
+    (cloudMode?nucleusParts:nucleusParts.concat(electrons));
 
   function zoomBy(f){ goal.radius=clamp(goal.radius*f, R_MIN, R_MAX); userZoomed=true; }
-  // Pan the table by dragging: move the camera target in the screen plane
   function panBy(dx,dy){
     if(view!=='table') return;
     const s=2*goal.radius*Math.tan(camera.fov*Math.PI/360)/innerHeight;
@@ -901,10 +1056,7 @@ body.focus #menuWrap{display:none!important}
       moved=99;
       const [a,b]=[...ptrs.values()];
       const d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-      if(pinch){
-        zoomBy(pinch.d/d);
-        panBy(mx-pinch.mx, my-pinch.my);
-      }
+      if(pinch){ zoomBy(pinch.d/d); panBy(mx-pinch.mx, my-pinch.my); }
       pinch={d,mx,my};
       return;
     }
@@ -963,11 +1115,15 @@ body.focus #menuWrap{display:none!important}
         nucleusParts.forEach(m=>{ const d=m.userData,w=0.008; m.position.set(d.base0.x+Math.sin(t*3+d.phase)*w, d.base0.y+Math.cos(t*2.6+d.phase)*w, d.base0.z+Math.sin(t*3.3+d.phase*1.7)*w); });
         clouds.forEach((c,i)=>{ c.rotation.y+=dt*0.05*(i+1); });
       }
-    } else if(view!=='table') molRoot.rotation.y+=dt*speed*0.3;
-    const root=view==='atom'?atomRoot:view==='table'?tableRoot:molRoot;
+    } else if(view==='mol' || view==='amino'){
+      molRoot.rotation.y+=dt*speed*0.3;
+    } else if(view==='protein'){
+      protRoot.rotation.y+=dt*speed*0.18;
+    }
+    const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='protein'?protRoot:molRoot;
     const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
 
-    if(!dragging && !reduceMotion && !focused && view!=='table') goal.theta+=dt*0.08;
+    if(!dragging && !reduceMotion && !focused && view!=='table' && view!=='protein') goal.theta+=dt*0.08;
     const k=1-Math.pow(0.001,dt);
     if(focused) focused.getWorldPosition(goal.target);
     cam.theta+=(goal.theta-cam.theta)*k; cam.phi+=(goal.phi-cam.phi)*k; cam.radius+=(goal.radius-cam.radius)*k; cam.target.lerp(goal.target,k);
@@ -979,7 +1135,6 @@ body.focus #menuWrap{display:none!important}
     canvas.classList.toggle('hover', !!hovered && !dragging);
 
     if(view==='table'){
-      // Tiles swell as you zoom in — capped below the grid pitch, so they never collide
       const zt=clamp((defR/Math.max(cam.radius,0.001)-1)/1.6, 0, 1);
       const grow=1+0.16*(zt*zt*(3-2*zt));
       const hv=hovered?hovered.object:null;
@@ -990,6 +1145,12 @@ body.focus #menuWrap{display:none!important}
         o.scale.setScalar(grow*u.hover);
         o.position.z=u.lift;
         u.body.emissiveIntensity=clamp((u.hover-1)*4,0,0.5);
+      });
+    } else if(view==='protein'){
+      protAtoms.forEach(o=>{
+        const u=o.userData, want=(hovered && hovered.object===o)||focused===o ? 1.25 : 1;
+        u.hover+=(want-u.hover)*0.2;
+        o.scale.setScalar(u.hover);
       });
     } else {
       list.forEach(o=>{
@@ -1006,6 +1167,14 @@ body.focus #menuWrap{display:none!important}
         lastHover=o;
         if(o){ const Z=o.userData.Z, el=ELS[Z-1];
           showCard(el[1], [['Symbol',el[0]],['Atomic number',Z],['Mass number',el[2]],['Type',CATS[catOf(Z)]]], 'Click to open this atom in 3D.');
+        } else card.classList.remove('on');
+      }
+    } else if(view==='protein'){
+      const o=hovered?hovered.object:null;
+      if(o!==lastHover){
+        lastHover=o;
+        if(o){ const d=o.userData;
+          showCard(AA_NAME[d.res]||d.res, [['Residue', (d.idx+1)+' of '+protLen],['Letter', d.res],['Class', AA_TYPE[d.res]||'—']], AA_DESC[d.res]||'');
         } else card.classList.remove('on');
       }
     }
