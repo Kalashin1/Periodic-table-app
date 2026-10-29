@@ -180,10 +180,17 @@ body.focus #menuWrap{display:none!important}
     <div class="sec" id="solarUI" hidden>
       <div class="chips" id="solarSystems" role="group" aria-label="Destinations">
         <button class="chip wide" data-sys="0" type="button" aria-pressed="true">Solar System</button>
-        <button class="chip wide" data-sys="1" type="button" aria-pressed="false">Proxima Centauri</button>
-        <button class="chip wide" data-sys="2" type="button" aria-pressed="false">Neutron star</button>
-        <button class="chip wide" data-sys="3" type="button" aria-pressed="false">Black hole</button>
-        <button class="chip wide" data-sys="-1" type="button" aria-pressed="false">Overview</button>
+        <button class="chip wide" data-sys="1" type="button">Proxima</button>
+        <button class="chip wide" data-sys="2" type="button">Alpha Centauri</button>
+        <button class="chip wide" data-sys="3" type="button">Sirius</button>
+        <button class="chip wide" data-sys="4" type="button">Tau Ceti</button>
+        <button class="chip wide" data-sys="5" type="button">Trappist-1</button>
+        <button class="chip wide" data-sys="6" type="button">Betelgeuse</button>
+        <button class="chip wide" data-sys="7" type="button">Rigel</button>
+        <button class="chip wide" data-sys="8" type="button">White dwarf</button>
+        <button class="chip wide" data-sys="9" type="button">Neutron star</button>
+        <button class="chip wide" data-sys="10" type="button">Black hole</button>
+        <button class="chip wide" data-sys="-1" type="button">Overview</button>
       </div>
       <div class="chips" id="solarTools" role="group" aria-label="Solar system controls">
         <button class="chip wide" id="solarOrbits" type="button" aria-pressed="true">Orbits</button>
@@ -218,7 +225,6 @@ body.focus #menuWrap{display:none!important}
   const sup = s => String(s).replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 
-  // ---------- Interface visibility ----------
   const UI = {header:true, ladder:true, panel:true, card:true, focus:false};
   const UI_KEY='atomlab.ui.v1';
   function loadUI(){
@@ -249,7 +255,7 @@ body.focus #menuWrap{display:none!important}
   }
   loadUI();
 
-  // ---------- Data ----------
+  // ======================= DATA =======================
   const ELS = ('H Hydrogen 1|He Helium 4|Li Lithium 7|Be Beryllium 9|B Boron 11|C Carbon 12|N Nitrogen 14|O Oxygen 16|F Fluorine 19|Ne Neon 20|'+
     'Na Sodium 23|Mg Magnesium 24|Al Aluminium 27|Si Silicon 28|P Phosphorus 31|S Sulfur 32|Cl Chlorine 35|Ar Argon 40|K Potassium 39|Ca Calcium 40|'+
     'Sc Scandium 45|Ti Titanium 48|V Vanadium 51|Cr Chromium 52|Mn Manganese 55|Fe Iron 56|Co Cobalt 59|Ni Nickel 58|Cu Copper 63|Zn Zinc 64|'+
@@ -308,15 +314,15 @@ body.focus #menuWrap{display:none!important}
   const BI = {CC1:[1.54,347],CC2:[1.34,614],CC3:[1.2,839],CCa:[1.4,518],CH1:[1.09,413],CN1:[1.47,305],CN2:[1.29,615],CO1:[1.43,358],CO2:[1.23,745],CS1:[1.82,259],HN1:[1.01,391],HO1:[.96,463],HS1:[1.34,339]};
   const bondInfo = (a,b,o,ar) => BI[[a,b].sort().join('')+(ar?'a':o)] || [1.5,350];
 
-  // ---------- Scene ----------
+  // ======================= SCENE =======================
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 800);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x35506a, 0.9));
   const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4,6,5); scene.add(key);
   const sp = [];
-  for(let i=0;i<1800;i++){ const r=200+Math.random()*300, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
+  for(let i=0;i<2600;i++){ const r=280+Math.random()*400, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
@@ -334,7 +340,7 @@ body.focus #menuWrap{display:none!important}
   let view='atom', nucleusParts=[], electrons=[], rings=[], clouds=[], cloudMode=false, born=0, defR=14, cur=null, nucR=0.3;
   let molAtoms=[], molBonds=[], spaceFill=false, openGroup=null, curIdx={mol:0,amino:0};
 
-  // ---------- Atom ----------
+  // ======================= ATOM =======================
   function build(i, A_override){
     clearRoot(atomRoot);
     nucleusParts=[]; electrons=[]; rings=[]; clouds=[];
@@ -450,7 +456,7 @@ body.focus #menuWrap{display:none!important}
   }
   const setPart = i => partChips.forEach((c,k)=>c.setAttribute('aria-pressed', k===i));
 
-  // ---------- Hydrocarbon geometry ----------
+  // ======================= HYDROCARBONS =======================
   function molData(def){
     const A=[], L=[];
     if(typeof def==='string'){
@@ -508,7 +514,7 @@ body.focus #menuWrap{display:none!important}
     return {A,L};
   }
 
-  // ---------- Amino acid geometry ----------
+  // ======================= AMINO ACIDS =======================
   function aminoData(smi, seed){
     const at=[], bd=[], VAL={C:4,N:3,O:2,S:2}; let prev=-1, ord=1; const stack=[], ring={};
     for(const ch of smi){
@@ -615,9 +621,7 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
-  // ============================================================
-  // SOLAR SYSTEM (Solar System + Proxima Centauri + exotic objects)
-  // ============================================================
+  // ======================= SOLAR SYSTEM =======================
   const SOLAR = {
     systems: [],
     exoticBodies: [],
@@ -628,130 +632,19 @@ body.focus #menuWrap{display:none!important}
     currentSystem: 0
   };
 
-  const PLANET_DATA = [
-    { name:'Mercury', color:0xb8b0a8, radius:0.25, orbitRadius:4.5, period:0.24, initAngle:0,
-      info:{ distance:'0.39 AU', period:'88 days', rotation:'58.6 days', moons:0,
-        desc:'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.' } },
-    { name:'Venus', color:0xe8c17e, radius:0.5, orbitRadius:6.2, period:0.62, initAngle:1.2,
-      info:{ distance:'0.72 AU', period:'225 days', rotation:'243 days (retrograde)', moons:0,
-        desc:'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.' } },
-    { name:'Earth', color:0x4a90d9, radius:0.55, orbitRadius:8.2, period:1.0, initAngle:2.8,
-      moons:[{ name:'Moon', color:0xcccccc, radius:0.15, orbitRadius:1.3, speed:1.4,
-        info:{ period:'27.3 days', diameter:'3,474 km', desc:"Earth's only natural satellite. Stabilises Earth's axial tilt." } }],
-      info:{ distance:'1.00 AU', period:'365.25 days', rotation:'24 hours', moons:1,
-        desc:'The only known planet with liquid water on its surface and life. Has a strong magnetic field and one large moon.' } },
-    { name:'Mars', color:0xc1440e, radius:0.35, orbitRadius:10.4, period:1.88, initAngle:4.1,
-      moons:[
-        { name:'Phobos', color:0xaaaaaa, radius:0.045, orbitRadius:0.75, speed:2.0,
-          info:{ period:'7.7 hours', diameter:'22 km', desc:'The larger, inner moon of Mars. Orbits faster than Mars rotates.' } },
-        { name:'Deimos', color:0xbbbbbb, radius:0.035, orbitRadius:1.1, speed:1.1,
-          info:{ period:'30 hours', diameter:'12 km', desc:'The smaller, outer moon of Mars.' } }],
-      info:{ distance:'1.52 AU', period:'687 days', rotation:'24.6 hours', moons:2,
-        desc:'The red planet. Home to Olympus Mons, the tallest volcano in the solar system.' } },
-    { name:'Jupiter', color:0xd4a373, radius:1.4, orbitRadius:15, period:11.86, initAngle:5.3,
-      moons:[
-        { name:'Io', color:0xffcc44, radius:0.09, orbitRadius:2.5, speed:1.8,
-          info:{ period:'1.77 days', diameter:'3,643 km', desc:'The most volcanically active body in the solar system.' } },
-        { name:'Europa', color:0xe8dcc0, radius:0.08, orbitRadius:3.2, speed:1.4,
-          info:{ period:'3.55 days', diameter:'3,122 km', desc:'Has a subsurface ocean that may harbour life.' } },
-        { name:'Ganymede', color:0xb8a890, radius:0.11, orbitRadius:4.0, speed:1.0,
-          info:{ period:'7.15 days', diameter:'5,268 km', desc:'The largest moon in the solar system — bigger than Mercury.' } },
-        { name:'Callisto', color:0x887766, radius:0.10, orbitRadius:4.9, speed:0.7,
-          info:{ period:'16.7 days', diameter:'4,821 km', desc:'One of the most heavily cratered objects in the solar system.' } }],
-      info:{ distance:'5.20 AU', period:'11.86 years', rotation:'9.9 hours', moons:95,
-        desc:'The largest planet — a gas giant with the Great Red Spot, a storm larger than Earth.' } },
-    { name:'Saturn', color:0xe3c78a, radius:1.2, orbitRadius:20, period:29.46, initAngle:0.4, ring:true,
-      moons:[
-        { name:'Titan', color:0xddaa66, radius:0.10, orbitRadius:2.6, speed:1.0,
-          info:{ period:'16 days', diameter:'5,150 km', desc:"Saturn's largest moon, with a thick nitrogen atmosphere and methane lakes." } },
-        { name:'Rhea', color:0xcccccc, radius:0.05, orbitRadius:2.0, speed:1.6,
-          info:{ period:'4.5 days', diameter:'1,527 km', desc:'A heavily cratered moon of Saturn.' } }],
-      info:{ distance:'9.58 AU', period:'29.46 years', rotation:'10.7 hours', moons:146,
-        desc:'Famous for its spectacular rings of ice and rock, which span over 280,000 km but are only tens of metres thick.' } },
-    { name:'Uranus', color:0xa2d8e8, radius:0.9, orbitRadius:25, period:84.01, initAngle:2.2,
-      moons:[{ name:'Titania', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
-        info:{ period:'8.7 days', diameter:'1,578 km', desc:'The largest moon of Uranus, with deep canyons.' } }],
-      info:{ distance:'19.22 AU', period:'84.01 years', rotation:'17.2 hours (retrograde)', moons:28,
-        desc:'An ice giant that rotates on its side — likely the result of a massive ancient collision.' } },
-    { name:'Neptune', color:0x3c5eb8, radius:0.9, orbitRadius:30, period:164.8, initAngle:3.9,
-      moons:[{ name:'Triton', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
-        info:{ period:'5.9 days', diameter:'2,707 km', desc:'A moon with a retrograde orbit — likely a captured Kuiper Belt object.' } }],
-      info:{ distance:'30.05 AU', period:'164.8 years', rotation:'16.1 hours', moons:16,
-        desc:'The windiest planet, with winds exceeding 2,000 km/h.' } }
-  ];
+  // --- Star visual presets ---
+  const STAR_TYPES = {
+    'main-sequence': { color:0xffdd44, glow1:0.40, glow2:0.22, corona:0.10, light:2.2, coronaScale:2.5, pulseSpeed:2.3, pulseAmp:0.03, sparkCount:30, sparkScale:0.08 },
+    'red-dwarf':     { color:0xff5533, glow1:0.35, glow2:0.18, corona:0.08, light:1.2, coronaScale:2.2, pulseSpeed:1.8, pulseAmp:0.04, sparkCount:20, sparkScale:0.07 },
+    'orange-dwarf':  { color:0xffaa55, glow1:0.38, glow2:0.20, corona:0.09, light:1.6, coronaScale:2.3, pulseSpeed:2.0, pulseAmp:0.03, sparkCount:24, sparkScale:0.075 },
+    'blue-star':     { color:0xaaccff, glow1:0.55, glow2:0.30, corona:0.15, light:3.5, coronaScale:2.8, pulseSpeed:3.5, pulseAmp:0.04, sparkCount:40, sparkScale:0.09 },
+    'white-dwarf':   { color:0xeeffff, glow1:0.60, glow2:0.25, corona:0.05, light:1.5, coronaScale:1.6, pulseSpeed:4.0, pulseAmp:0.02, sparkCount:0, sparkScale:0 },
+    'red-giant':     { color:0xff6633, glow1:0.30, glow2:0.20, corona:0.15, light:2.5, coronaScale:2.0, pulseSpeed:1.0, pulseAmp:0.06, sparkCount:50, sparkScale:0.11 }
+  };
 
-  const PROXIMA_PLANETS = [
-    { name:'Proxima d', color:0xdd8866, radius:0.20, orbitRadius:1.8, period:0.014, initAngle:0,
-      info:{ distance:'0.029 AU', period:'5.12 days', rotation:'tidal lock', moons:0,
-        desc:'A sub-Earth mass planet — the innermost world orbiting Proxima Centauri.' } },
-    { name:'Proxima b', color:0x88bbaa, radius:0.35, orbitRadius:3.0, period:0.031, initAngle:1.5,
-      info:{ distance:'0.0485 AU', period:'11.2 days', rotation:'tidal lock', moons:0,
-        desc:'A roughly Earth-mass planet in the habitable zone. It may have liquid water on its surface.' } },
-    { name:'Proxima c', color:0x6688aa, radius:0.60, orbitRadius:6.0, period:5.28, initAngle:3.2,
-      info:{ distance:'1.49 AU', period:'5.28 years', rotation:'unknown', moons:0,
-        desc:'A super-Earth or mini-Neptune, much farther from its star than Proxima b.' } }
-  ];
-
-  const SYSTEMS_DATA = [
-    {
-      name: 'Solar System',
-      center: new V(-50, 0, 0),
-      starMass: 80,
-      star: {
-        name: 'The Sun',
-        color: 0xffdd44,
-        radius: 1.6,
-        type: 'G-type main-sequence (G2V)',
-        temp: '5,500 °C surface',
-        desc: "A yellow dwarf star at the centre of our solar system. It contains 99.8% of the system's mass and fuses hydrogen into helium in its core."
-      },
-      planets: PLANET_DATA
-    },
-    {
-      name: 'Proxima Centauri',
-      center: new V(50, 0, 0),
-      starMass: 50,
-      star: {
-        name: 'Proxima Centauri',
-        color: 0xff5533,
-        radius: 0.9,
-        type: 'Red dwarf (M5.5Ve)',
-        temp: '3,042 °C surface',
-        desc: 'The closest star to the Sun at 4.24 light-years. It is much smaller and cooler than our Sun, and hosts three confirmed planets.'
-      },
-      planets: PROXIMA_PLANETS
-    }
-  ];
-
-  const EXOTIC_DATA = [
-    {
-      name: 'Neutron star',
-      type: 'neutronStar',
-      position: new V(0, 0, 80),
-      fabricMass: 140,
-      zoomRadius: 18,
-      info: {
-        type: 'Pulsar (rotating neutron star)',
-        temp: '~600,000 °C surface',
-        desc: 'A collapsed stellar core — roughly 1.4 solar masses packed into a sphere only about 20 km across. A teaspoon of its matter would weigh billions of tonnes on Earth. Rapidly spinning magnetic poles sweep beams of radiation through space, seen as regular radio pulses.'
-      }
-    },
-    {
-      name: 'Black hole',
-      type: 'blackHole',
-      position: new V(0, 0, -80),
-      fabricMass: 320,
-      zoomRadius: 22,
-      info: {
-        type: 'Stellar-mass black hole (rotating)',
-        temp: 'No emission from the horizon',
-        desc: 'A region where gravity is so strong that nothing — not even light — can escape. The bright ring is the accretion disk of superheated matter spiralling in and radiating away its energy. The dark sphere is the event horizon — the point of no return.'
-      }
-    }
-  ];
-
-  // ----- Burning star visual -----
-  function createBurningStar(color, radius){
+  function createStar(type, radius){
+    const cfg = STAR_TYPES[type] || STAR_TYPES['main-sequence'];
+    const color = cfg.color;
     const group = new THREE.Group();
 
     const core = new THREE.Mesh(
@@ -762,169 +655,133 @@ body.focus #menuWrap{display:none!important}
 
     const glow1 = new THREE.Mesh(
       new THREE.SphereGeometry(radius * 1.2, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false })
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow1, blending:THREE.AdditiveBlending, depthWrite:false })
     );
     group.add(glow1);
 
     const glow2 = new THREE.Mesh(
       new THREE.SphereGeometry(radius * 1.6, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, depthWrite:false })
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.glow2, blending:THREE.AdditiveBlending, depthWrite:false })
     );
     group.add(glow2);
 
     const corona = new THREE.Mesh(
-      new THREE.SphereGeometry(radius * 2.5, 32, 24),
-      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.10, blending:THREE.AdditiveBlending, depthWrite:false })
+      new THREE.SphereGeometry(radius * cfg.coronaScale, 32, 24),
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:cfg.corona, blending:THREE.AdditiveBlending, depthWrite:false })
     );
     group.add(corona);
 
-    const sparkCount = 30;
-    const sparkGeo = new THREE.BufferGeometry();
-    const sparkPos = new Float32Array(sparkCount * 3);
-    for (let i = 0; i < sparkCount; i++){
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      const r = radius * (1.3 + Math.random() * 0.9);
-      sparkPos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
-      sparkPos[i*3+1] = Math.cos(phi) * r;
-      sparkPos[i*3+2] = Math.sin(phi) * Math.sin(theta) * r;
+    let sparks = null;
+    if (cfg.sparkCount > 0){
+      const sparkGeo = new THREE.BufferGeometry();
+      const sparkPos = new Float32Array(cfg.sparkCount * 3);
+      for (let i = 0; i < cfg.sparkCount; i++){
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = radius * (1.3 + Math.random() * 0.9);
+        sparkPos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
+        sparkPos[i*3+1] = Math.cos(phi) * r;
+        sparkPos[i*3+2] = Math.sin(phi) * Math.sin(theta) * r;
+      }
+      sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+      sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
+        color:0xffffee, size: radius * cfg.sparkScale, transparent:true, opacity:0.85,
+        blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
+      }));
+      group.add(sparks);
     }
-    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
-    const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
-      color:0xffffee, size: radius * 0.08, transparent:true, opacity:0.85,
-      blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
-    }));
-    group.add(sparks);
 
-    const light = new THREE.PointLight(color, 2.2, radius * 60);
+    const light = new THREE.PointLight(color, cfg.light, radius * 80);
     group.add(light);
 
-    group.userData.starFx = { core, glow1, glow2, corona, sparks, light, radius, type:'star' };
-    return group;
-  }
-
-  // ----- Neutron star / pulsar -----
-  function createNeutronStar(){
-    const group = new THREE.Group();
-
-    const core = new THREE.Mesh(
-      new THREE.SphereGeometry(0.7, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0xaaddff })
-    );
-    group.add(core);
-
-    const glow1 = new THREE.Mesh(
-      new THREE.SphereGeometry(1.1, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(glow1);
-
-    const glow2 = new THREE.Mesh(
-      new THREE.SphereGeometry(1.8, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(glow2);
-
-    // Pulsar beams
-    const beams = new THREE.Group();
-    for (const sign of [1, -1]){
-      const beamGeo = new THREE.ConeGeometry(0.6, 9, 16, 1, true);
-      const beamMat = new THREE.MeshBasicMaterial({
-        color: 0xaaddff, transparent:true, opacity:0.22,
-        blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite:false
-      });
-      const beam = new THREE.Mesh(beamGeo, beamMat);
-      beam.position.y = sign * 4.5;
-      if (sign < 0) beam.rotation.x = Math.PI;
-      beams.add(beam);
-    }
-    group.add(beams);
-
-    const light = new THREE.PointLight(0x99ccff, 2.5, 60);
-    group.add(light);
-
-    group.userData.starFx = { core, glow1, glow2, beams, light, type:'neutronStar' };
-    return group;
-  }
-
-  // ----- Black hole -----
-  function createBlackHole(){
-    const group = new THREE.Group();
-
-    // Event horizon — pure black
-    const horizon = new THREE.Mesh(
-      new THREE.SphereGeometry(1.6, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0x000000 })
-    );
-    group.add(horizon);
-
-    // Faint halo so the horizon edge reads against space
-    const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(1.75, 32, 24),
-      new THREE.MeshBasicMaterial({ color: 0x221133, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false })
-    );
-    group.add(halo);
-
-    // Photon ring — bright thin ring just outside the horizon
-    const photonGeo = new THREE.RingGeometry(2.2, 2.5, 64);
-    const photonMat = new THREE.MeshBasicMaterial({
-      color: 0xffcc88, side: THREE.DoubleSide,
-      transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false
-    });
-    const photon = new THREE.Mesh(photonGeo, photonMat);
-    photon.rotation.x = Math.PI / 2;
-    group.add(photon);
-
-    // Outer accretion disk
-    const diskGeo = new THREE.RingGeometry(2.6, 6.5, 80);
-    const diskMat = new THREE.MeshBasicMaterial({
-      color: 0xff6622, side: THREE.DoubleSide,
-      transparent:true, opacity:0.5, blending:THREE.AdditiveBlending, depthWrite:false
-    });
-    const disk = new THREE.Mesh(diskGeo, diskMat);
-    disk.rotation.x = Math.PI / 2 - 0.35;
-    group.add(disk);
-
-    // Inner hot disk (bright)
-    const innerDiskGeo = new THREE.RingGeometry(2.5, 4.0, 64);
-    const innerDiskMat = new THREE.MeshBasicMaterial({
-      color: 0xffcc44, side: THREE.DoubleSide,
-      transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false
-    });
-    const innerDisk = new THREE.Mesh(innerDiskGeo, innerDiskMat);
-    innerDisk.rotation.x = Math.PI / 2 - 0.35;
-    group.add(innerDisk);
-
-    const light = new THREE.PointLight(0xff8844, 2.0, 80);
-    group.add(light);
-
-    group.userData.starFx = { horizon, halo, photon, disk, innerDisk, light, type:'blackHole' };
+    group.userData.starFx = {
+      type: 'star',
+      core, glow1, glow2, corona, sparks, light, radius,
+      pulseSpeed: cfg.pulseSpeed, pulseAmp: cfg.pulseAmp,
+      baseGlow1: cfg.glow1, baseGlow2: cfg.glow2, baseCorona: cfg.corona, baseLight: cfg.light
+    };
     return group;
   }
 
   function animateStar(starGroup, time, dt){
     const fx = starGroup.userData.starFx;
     if (!fx || fx.type !== 'star') return;
+    const s = fx.pulseSpeed, a = fx.pulseAmp;
 
-    fx.glow1.scale.setScalar(1 + Math.sin(time * 2.3) * 0.03);
-    fx.glow2.scale.setScalar(1 + Math.sin(time * 1.7 + 0.7) * 0.05);
-    fx.corona.scale.setScalar(1 + Math.sin(time * 1.1 + 1.4) * 0.07);
+    fx.glow1.scale.setScalar(1 + Math.sin(time * s) * a);
+    fx.glow2.scale.setScalar(1 + Math.sin(time * s * 0.7 + 0.7) * a * 1.4);
+    fx.corona.scale.setScalar(1 + Math.sin(time * s * 0.5 + 1.4) * a * 1.8);
 
-    fx.glow1.material.opacity = 0.38 + Math.sin(time * 2.8) * 0.06;
-    fx.glow2.material.opacity = 0.20 + Math.sin(time * 1.9 + 0.5) * 0.04;
-    fx.corona.material.opacity = 0.09 + Math.sin(time * 1.4 + 1.0) * 0.02;
+    fx.glow1.material.opacity = fx.baseGlow1 + Math.sin(time * s * 1.2) * 0.05;
+    fx.glow2.material.opacity = fx.baseGlow2 + Math.sin(time * s * 0.9 + 0.5) * 0.04;
+    fx.corona.material.opacity = fx.baseCorona + Math.sin(time * s * 0.7 + 1.0) * 0.02;
 
-    fx.light.intensity = 2.0 + Math.sin(time * 3.2) * 0.3;
+    fx.light.intensity = fx.baseLight + Math.sin(time * s * 1.4) * 0.3;
 
-    fx.sparks.rotation.y += dt * 0.4;
-    fx.sparks.rotation.x += dt * 0.2;
+    if (fx.sparks){
+      fx.sparks.rotation.y += dt * 0.4;
+      fx.sparks.rotation.x += dt * 0.2;
+    }
+  }
+
+  // --- Neutron star ---
+  function createNeutronStar(){
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 24), new THREE.MeshBasicMaterial({ color: 0xaaddff }));
+    group.add(core);
+    const glow1 = new THREE.Mesh(new THREE.SphereGeometry(1.1, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false }));
+    group.add(glow1);
+    const glow2 = new THREE.Mesh(new THREE.SphereGeometry(1.8, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending, depthWrite:false }));
+    group.add(glow2);
+    const beams = new THREE.Group();
+    for (const sign of [1, -1]){
+      const beam = new THREE.Mesh(
+        new THREE.ConeGeometry(0.6, 9, 16, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, depthWrite:false })
+      );
+      beam.position.y = sign * 4.5;
+      if (sign < 0) beam.rotation.x = Math.PI;
+      beams.add(beam);
+    }
+    group.add(beams);
+    const light = new THREE.PointLight(0x99ccff, 2.5, 60);
+    group.add(light);
+    group.userData.starFx = { core, glow1, glow2, beams, light, type:'neutronStar' };
+    return group;
+  }
+
+  // --- Black hole ---
+  function createBlackHole(){
+    const group = new THREE.Group();
+    const horizon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    group.add(horizon);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(1.75, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0x221133, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false }));
+    group.add(halo);
+    const photon = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.5, 64),
+      new THREE.MeshBasicMaterial({ color:0xffcc88, side:THREE.DoubleSide, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false }));
+    photon.rotation.x = Math.PI / 2;
+    group.add(photon);
+    const disk = new THREE.Mesh(new THREE.RingGeometry(2.6, 6.5, 80),
+      new THREE.MeshBasicMaterial({ color:0xff6622, side:THREE.DoubleSide, transparent:true, opacity:0.5, blending:THREE.AdditiveBlending, depthWrite:false }));
+    disk.rotation.x = Math.PI / 2 - 0.35;
+    group.add(disk);
+    const innerDisk = new THREE.Mesh(new THREE.RingGeometry(2.5, 4.0, 64),
+      new THREE.MeshBasicMaterial({ color:0xffcc44, side:THREE.DoubleSide, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false }));
+    innerDisk.rotation.x = Math.PI / 2 - 0.35;
+    group.add(innerDisk);
+    const light = new THREE.PointLight(0xff8844, 2.0, 80);
+    group.add(light);
+    group.userData.starFx = { horizon, halo, photon, disk, innerDisk, light, type:'blackHole' };
+    return group;
   }
 
   function animateExotic(dt, time){
     for (const ex of SOLAR.exoticBodies){
       const fx = ex.bodyGroup.userData.starFx;
       if (!fx) continue;
-
       if (fx.type === 'neutronStar'){
         ex.bodyGroup.rotation.y += dt * 2.5;
         if (fx.beams) fx.beams.rotation.y += dt * 1.8;
@@ -940,10 +797,256 @@ body.focus #menuWrap{display:none!important}
     }
   }
 
-  // ----- Spacetime fabric -----
+  // ======================= SOLAR DATA =======================
+  const PLANET_DATA = [
+    { name:'Mercury', color:0xb8b0a8, radius:0.25, orbitRadius:4.5, period:0.24, initAngle:0,
+      info:{ distance:'0.39 AU', period:'88 days', rotation:'58.6 days', moons:0,
+        desc:'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.' } },
+    { name:'Venus', color:0xe8c17e, radius:0.5, orbitRadius:6.2, period:0.62, initAngle:1.2,
+      info:{ distance:'0.72 AU', period:'225 days', rotation:'243 days (retrograde)', moons:0,
+        desc:'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.' } },
+    { name:'Earth', color:0x4a90d9, radius:0.55, orbitRadius:8.2, period:1.0, initAngle:2.8,
+      moons:[{ name:'Moon', color:0xcccccc, radius:0.15, orbitRadius:1.3, speed:1.4,
+        info:{ period:'27.3 days', diameter:'3,474 km', desc:"Earth's only natural satellite. Stabilises Earth's axial tilt." } }],
+      info:{ distance:'1.00 AU', period:'365.25 days', rotation:'24 hours', moons:1,
+        desc:'The only known planet with liquid water on its surface and life.' } },
+    { name:'Mars', color:0xc1440e, radius:0.35, orbitRadius:10.4, period:1.88, initAngle:4.1,
+      moons:[
+        { name:'Phobos', color:0xaaaaaa, radius:0.045, orbitRadius:0.75, speed:2.0,
+          info:{ period:'7.7 hours', diameter:'22 km', desc:'The larger, inner moon of Mars.' } },
+        { name:'Deimos', color:0xbbbbbb, radius:0.035, orbitRadius:1.1, speed:1.1,
+          info:{ period:'30 hours', diameter:'12 km', desc:'The smaller, outer moon of Mars.' } }],
+      info:{ distance:'1.52 AU', period:'687 days', rotation:'24.6 hours', moons:2,
+        desc:'The red planet, home to Olympus Mons.' } },
+    { name:'Jupiter', color:0xd4a373, radius:1.4, orbitRadius:15, period:11.86, initAngle:5.3,
+      moons:[
+        { name:'Io', color:0xffcc44, radius:0.09, orbitRadius:2.5, speed:1.8,
+          info:{ period:'1.77 days', diameter:'3,643 km', desc:'The most volcanically active body in the solar system.' } },
+        { name:'Europa', color:0xe8dcc0, radius:0.08, orbitRadius:3.2, speed:1.4,
+          info:{ period:'3.55 days', diameter:'3,122 km', desc:'Has a subsurface ocean that may harbour life.' } },
+        { name:'Ganymede', color:0xb8a890, radius:0.11, orbitRadius:4.0, speed:1.0,
+          info:{ period:'7.15 days', diameter:'5,268 km', desc:'The largest moon in the solar system.' } },
+        { name:'Callisto', color:0x887766, radius:0.10, orbitRadius:4.9, speed:0.7,
+          info:{ period:'16.7 days', diameter:'4,821 km', desc:'One of the most heavily cratered objects in the solar system.' } }],
+      info:{ distance:'5.20 AU', period:'11.86 years', rotation:'9.9 hours', moons:95,
+        desc:'A gas giant with the Great Red Spot.' } },
+    { name:'Saturn', color:0xe3c78a, radius:1.2, orbitRadius:20, period:29.46, initAngle:0.4, ring:true,
+      moons:[
+        { name:'Titan', color:0xddaa66, radius:0.10, orbitRadius:2.6, speed:1.0,
+          info:{ period:'16 days', diameter:'5,150 km', desc:"Saturn's largest moon, with methane lakes." } },
+        { name:'Rhea', color:0xcccccc, radius:0.05, orbitRadius:2.0, speed:1.6,
+          info:{ period:'4.5 days', diameter:'1,527 km', desc:'A heavily cratered moon of Saturn.' } }],
+      info:{ distance:'9.58 AU', period:'29.46 years', rotation:'10.7 hours', moons:146,
+        desc:'Famous for its spectacular rings.' } },
+    { name:'Uranus', color:0xa2d8e8, radius:0.9, orbitRadius:25, period:84.01, initAngle:2.2,
+      moons:[{ name:'Titania', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
+        info:{ period:'8.7 days', diameter:'1,578 km', desc:'The largest moon of Uranus.' } }],
+      info:{ distance:'19.22 AU', period:'84.01 years', rotation:'17.2 hours', moons:28,
+        desc:'An ice giant that rotates on its side.' } },
+    { name:'Neptune', color:0x3c5eb8, radius:0.9, orbitRadius:30, period:164.8, initAngle:3.9,
+      moons:[{ name:'Triton', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
+        info:{ period:'5.9 days', diameter:'2,707 km', desc:'A retrograde moon, likely a captured Kuiper Belt object.' } }],
+      info:{ distance:'30.05 AU', period:'164.8 years', rotation:'16.1 hours', moons:16,
+        desc:'The windiest planet, with winds exceeding 2,000 km/h.' } }
+  ];
+
+  const PROXIMA_PLANETS = [
+    { name:'Proxima d', color:0xdd8866, radius:0.20, orbitRadius:1.8, period:0.014, initAngle:0,
+      info:{ distance:'0.029 AU', period:'5.12 days', rotation:'tidal lock', moons:0,
+        desc:'A sub-Earth mass planet — the innermost world of Proxima Centauri.' } },
+    { name:'Proxima b', color:0x88bbaa, radius:0.35, orbitRadius:3.0, period:0.031, initAngle:1.5,
+      info:{ distance:'0.0485 AU', period:'11.2 days', rotation:'tidal lock', moons:0,
+        desc:'A roughly Earth-mass planet in the habitable zone.' } },
+    { name:'Proxima c', color:0x6688aa, radius:0.60, orbitRadius:6.0, period:5.28, initAngle:3.2,
+      info:{ distance:'1.49 AU', period:'5.28 years', rotation:'unknown', moons:0,
+        desc:'A super-Earth or mini-Neptune on a wide orbit.' } }
+  ];
+
+  const TAU_CETI_PLANETS = [
+    { name:'Tau Ceti e', color:0xaa8877, radius:0.4, orbitRadius:3.5, period:0.45, initAngle:0,
+      info:{ distance:'0.55 AU', period:'162 days', rotation:'unknown', moons:0,
+        desc:'A super-Earth candidate in the habitable zone of Tau Ceti.' } },
+    { name:'Tau Ceti f', color:0x886655, radius:0.45, orbitRadius:5.0, period:1.7, initAngle:2,
+      info:{ distance:'1.35 AU', period:'1,270 days', rotation:'unknown', moons:0,
+        desc:'A super-Earth on the outer edge of Tau Ceti\'s habitable zone.' } }
+  ];
+
+  const TRAPPIST_PLANETS = [
+    { name:'Trappist-1b', color:0xddaa88, radius:0.18, orbitRadius:1.1, period:0.004, initAngle:0,
+      info:{ distance:'0.011 AU', period:'1.51 days', rotation:'tidally locked', moons:0,
+        desc:'The innermost world — likely too hot for liquid water.' } },
+    { name:'Trappist-1c', color:0xddbb99, radius:0.18, orbitRadius:1.5, period:0.0067, initAngle:1,
+      info:{ distance:'0.016 AU', period:'2.42 days', rotation:'tidally locked', moons:0,
+        desc:'Second planet — likely a Venus-like world.' } },
+    { name:'Trappist-1d', color:0xcccc99, radius:0.14, orbitRadius:2.0, period:0.011, initAngle:2,
+      info:{ distance:'0.022 AU', period:'4.05 days', rotation:'tidally locked', moons:0,
+        desc:'In the habitable zone — one of three potentially water-bearing worlds.' } },
+    { name:'Trappist-1e', color:0x99bbaa, radius:0.17, orbitRadius:2.5, period:0.017, initAngle:3,
+      info:{ distance:'0.029 AU', period:'6.10 days', rotation:'tidally locked', moons:0,
+        desc:'The most Earth-like of the seven — right in the middle of the habitable zone.' } },
+    { name:'Trappist-1f', color:0x99aabb, radius:0.18, orbitRadius:3.0, period:0.025, initAngle:4,
+      info:{ distance:'0.038 AU', period:'9.21 days', rotation:'tidally locked', moons:0,
+        desc:'A cooler planet — could have water ice on its surface.' } },
+    { name:'Trappist-1g', color:0x8899aa, radius:0.19, orbitRadius:3.5, period:0.034, initAngle:5,
+      info:{ distance:'0.047 AU', period:'12.35 days', rotation:'tidally locked', moons:0,
+        desc:'The largest planet in the system.' } },
+    { name:'Trappist-1h', color:0x7788aa, radius:0.13, orbitRadius:4.0, period:0.05, initAngle:6,
+      info:{ distance:'0.062 AU', period:'18.77 days', rotation:'tidally locked', moons:0,
+        desc:'The outermost and coldest world of the seven.' } }
+  ];
+
+  const SYSTEMS_DATA = [
+    {
+      name: 'Solar System',
+      center: new V(-40, 0, 0),
+      zoomRadius: 75,
+      summary: 'Our home. A yellow dwarf star, 8 planets and 1 large moon — all within ~50 AU.',
+      stars: [{
+        name: 'The Sun', type: 'main-sequence', radius: 1.6, mass: 80,
+        info: { type: 'G-type main-sequence (G2V)', temp: '5,500 °C surface',
+                desc: "A yellow dwarf star at the centre of our solar system. Contains 99.8% of the system's mass and fuses hydrogen into helium in its core." }
+      }],
+      planets: PLANET_DATA
+    },
+    {
+      name: 'Proxima Centauri',
+      center: new V(-110, 0, 30),
+      zoomRadius: 22,
+      summary: 'The closest star to the Sun. A red dwarf hosting three confirmed planets — 4.24 light-years away.',
+      stars: [{
+        name: 'Proxima Centauri', type: 'red-dwarf', radius: 0.9, mass: 30,
+        info: { type: 'Red dwarf (M5.5Ve)', temp: '3,042 °C surface',
+                desc: 'The closest star to the Sun at 4.24 light-years. Much smaller and cooler than our Sun, it hosts three confirmed planets.' }
+      }],
+      planets: PROXIMA_PLANETS
+    },
+    {
+      name: 'Alpha Centauri',
+      center: new V(30, 0, -20),
+      zoomRadius: 30,
+      summary: 'A binary of two Sun-like stars 4.37 light-years away — the closest Sun-like stars to us.',
+      stars: [
+        { name: 'Alpha Centauri A', type: 'main-sequence', radius: 1.2, mass: 45,
+          orbitRadius: 1.8, orbitSpeed: 0.4, phase: 0,
+          info: { type: 'G2V yellow dwarf', temp: '5,790 °C surface',
+                  desc: 'The primary of the Alpha Centauri system — nearly identical in size and temperature to the Sun.' } },
+        { name: 'Alpha Centauri B', type: 'orange-dwarf', radius: 0.9, mass: 35,
+          orbitRadius: 1.8, orbitSpeed: 0.4, phase: Math.PI,
+          info: { type: 'K1V orange dwarf', temp: '5,260 °C surface',
+                  desc: 'The secondary of the Alpha Centauri A/B pair, slightly cooler and less massive than the Sun.' } }
+      ],
+      planets: []
+    },
+    {
+      name: 'Sirius',
+      center: new V(110, 0, -20),
+      zoomRadius: 30,
+      summary: 'The brightest star in Earth\'s night sky — a blue-white star and its white dwarf companion.',
+      stars: [
+        { name: 'Sirius A', type: 'blue-star', radius: 1.4, mass: 60,
+          orbitRadius: 2.5, orbitSpeed: 0.2, phase: 0,
+          info: { type: 'A1V blue-white main sequence', temp: '9,940 °C surface',
+                  desc: 'The brightest star in the night sky. Twice the mass of the Sun and 25 times more luminous.' } },
+        { name: 'Sirius B', type: 'white-dwarf', radius: 0.35, mass: 30,
+          orbitRadius: 2.5, orbitSpeed: 0.2, phase: Math.PI,
+          info: { type: 'DA2 white dwarf', temp: '25,000 °C surface',
+                  desc: 'A white dwarf — the exposed core of a dead star, packing the mass of the Sun into a sphere the size of Earth.' } }
+      ],
+      planets: []
+    },
+    {
+      name: 'Tau Ceti',
+      center: new V(-90, 0, -70),
+      zoomRadius: 25,
+      summary: 'A single Sun-like star 12 light-years away with a debris disk and candidate planets.',
+      stars: [{
+        name: 'Tau Ceti', type: 'main-sequence', radius: 1.3, mass: 70,
+        info: { type: 'G8V yellow dwarf', temp: '5,340 °C surface',
+                desc: 'A Sun-like star 12 light-years away with a prominent debris disk. At least four candidate planets have been detected.' }
+      }],
+      planets: TAU_CETI_PLANETS
+    },
+    {
+      name: 'Trappist-1',
+      center: new V(-80, 0, 120),
+      zoomRadius: 15,
+      summary: 'An ultra-cool red dwarf with 7 Earth-sized planets, 3 of them in the habitable zone — 40 light-years away.',
+      stars: [{
+        name: 'Trappist-1', type: 'red-dwarf', radius: 0.6, mass: 20,
+        info: { type: 'Ultracool red dwarf (M8V)', temp: '2,300 °C surface',
+                desc: 'Barely larger than Jupiter. Hosts seven Earth-sized planets, three in the habitable zone. The whole system would fit inside Mercury\'s orbit.' }
+      }],
+      planets: TRAPPIST_PLANETS
+    },
+    {
+      name: 'Betelgeuse',
+      center: new V(180, 0, 100),
+      zoomRadius: 25,
+      summary: 'A red supergiant in Orion — near the end of its life and destined for a supernova. Roughly 550 light-years away.',
+      stars: [{
+        name: 'Betelgeuse', type: 'red-giant', radius: 3.0, mass: 120,
+        info: { type: 'M1-2 Ia-ab red supergiant', temp: '3,500 °C surface',
+                desc: 'A red supergiant in Orion roughly 700 times the radius of the Sun. Already fusing heavier elements in its core, it will collapse into a supernova within the next ~100,000 years.' }
+      }],
+      planets: []
+    },
+    {
+      name: 'Rigel',
+      center: new V(-160, 0, -130),
+      zoomRadius: 22,
+      summary: 'A blue supergiant in Orion, roughly 120,000 times more luminous than the Sun — about 860 light-years away.',
+      stars: [{
+        name: 'Rigel', type: 'blue-star', radius: 2.2, mass: 100,
+        info: { type: 'B8 Ia blue supergiant', temp: '12,100 °C surface',
+                desc: 'A blue supergiant in Orion, one of the brightest stars in the Milky Way. Its intense ultraviolet radiation lights up the surrounding Witch Head Nebula.' }
+      }],
+      planets: []
+    },
+    {
+      name: "van Maanen's Star",
+      center: new V(110, 0, 60),
+      zoomRadius: 10,
+      summary: 'The closest single white dwarf to Earth — a dense stellar remnant 14 light-years away.',
+      stars: [{
+        name: "van Maanen's Star", type: 'white-dwarf', radius: 0.4, mass: 40,
+        info: { type: 'DZ8 white dwarf', temp: '6,200 °C surface',
+                desc: 'A white dwarf — the exposed core of a dead star. A teaspoon of its matter would weigh several tonnes on Earth.' }
+      }],
+      planets: []
+    }
+  ];
+
+  const EXOTIC_DATA = [
+    {
+      name: 'Neutron star',
+      type: 'neutronStar',
+      position: new V(280, 0, -80),
+      fabricMass: 140,
+      zoomRadius: 18,
+      info: {
+        type: 'Pulsar (rotating neutron star)',
+        temp: '~600,000 °C surface',
+        desc: 'A collapsed stellar core — roughly 1.4 solar masses packed into a sphere only about 20 km across. A teaspoon of its matter would weigh billions of tonnes on Earth. Rapidly spinning magnetic poles sweep beams of radiation through space, seen as regular radio pulses.'
+      }
+    },
+    {
+      name: 'Black hole',
+      type: 'blackHole',
+      position: new V(-280, 0, 60),
+      fabricMass: 320,
+      zoomRadius: 22,
+      info: {
+        type: 'Stellar-mass black hole (rotating)',
+        temp: 'No emission from the horizon',
+        desc: 'A region where gravity is so strong that nothing — not even light — can escape. The bright ring is the accretion disk of superheated matter spiralling in and radiating away its energy. The dark sphere is the event horizon.'
+      }
+    }
+  ];
+
+  // ======================= SOLAR BUILD =======================
   function buildFabric(){
     const segments = 80;
-    const size = 280;
+    const size = 560;
     const half = size / 2;
     const step = size / segments;
 
@@ -974,9 +1077,7 @@ body.focus #menuWrap{display:none!important}
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    const mat = new THREE.LineBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false
-    });
+    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false });
 
     const mesh = new THREE.LineSegments(geo, mat);
     mesh.position.y = -1;
@@ -994,7 +1095,13 @@ body.focus #menuWrap{display:none!important}
 
     const masses = [];
     for (const sys of SOLAR.systems){
-      masses.push({ x: sys.data.center.x, z: sys.data.center.z, mass: sys.data.starMass });
+      for (const star of sys.stars){
+        masses.push({
+          x: sys.data.center.x + star.group.position.x,
+          z: sys.data.center.z + star.group.position.z,
+          mass: star.data.mass || 40
+        });
+      }
       for (const p of sys.planets){
         masses.push({
           x: sys.data.center.x + p.group.position.x,
@@ -1033,115 +1140,126 @@ body.focus #menuWrap{display:none!important}
     col.needsUpdate = true;
   }
 
-  // ----- Build the whole system -----
   function buildStarSystem(sysData, sysIdx){
     const sysGroup = new THREE.Group();
     sysGroup.position.copy(sysData.center);
     solarRoot.add(sysGroup);
 
-    const starGroup = createBurningStar(sysData.star.color, sysData.star.radius);
-    sysGroup.add(starGroup);
+    // Build stars
+    const starObjs = [];
+    for (const sd of sysData.stars){
+      const starGroup = createStar(sd.type, sd.radius);
+      sysGroup.add(starGroup);
 
-    const starMeta = {
-      name: sysData.star.name,
-      isStar: true,
-      systemIndex: sysIdx,
-      focusTarget: starGroup,
-      info: {
-        type: sysData.star.type,
-        temp: sysData.star.temp,
-        planets: sysData.planets.length,
-        desc: sysData.star.desc
+      // Initial position if binary
+      if (sd.orbitRadius){
+        const angle = sd.phase || 0;
+        starGroup.position.x = Math.cos(angle) * sd.orbitRadius;
+        starGroup.position.z = Math.sin(angle) * sd.orbitRadius;
       }
-    };
-    starGroup.userData.solar = starMeta;
-    starGroup.traverse(child => {
-      if (child.isMesh || child.isPoints) child.userData.solar = starMeta;
-    });
 
-    const planets = [];
-    for (const p of sysData.planets){
-      const planetGroup = new THREE.Group();
-      sysGroup.add(planetGroup);
-
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(p.radius, 28, 20),
-        new THREE.MeshStandardMaterial({
-          color: p.color, roughness: 0.72, metalness: 0.05,
-          emissive: p.color, emissiveIntensity: 0.1
-        })
-      );
-      planetGroup.add(mesh);
-
-      const planetMeta = {
-        name: p.name, planet: true, systemIndex: sysIdx,
-        focusTarget: planetGroup, planetRadius: p.radius, info: p.info
+      const starMeta = {
+        name: sd.name,
+        isStar: true,
+        systemIndex: sysIdx,
+        focusTarget: starGroup,
+        starRadius: sd.radius,
+        info: sd.info
       };
-      mesh.userData.solar = planetMeta;
+      starGroup.userData.solar = starMeta;
+      starGroup.traverse(child => {
+        if (child.isMesh || child.isPoints) child.userData.solar = starMeta;
+      });
 
-      const pts = [];
-      for (let i = 0; i <= 128; i++){
-        const a = i / 128 * Math.PI * 2;
-        pts.push(new THREE.Vector3(Math.cos(a) * p.orbitRadius, 0, Math.sin(a) * p.orbitRadius));
-      }
-      const orbitLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.22 })
-      );
-      sysGroup.add(orbitLine);
-
-      if (p.ring){
-        const ringGeo = new THREE.RingGeometry(p.radius * 1.4, p.radius * 2.2, 64);
-        const ringMat = new THREE.MeshBasicMaterial({
-          color: 0xd8c088, side: THREE.DoubleSide, transparent: true, opacity: 0.55
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = Math.PI / 2 + 0.15;
-        planetGroup.add(ring);
-      }
-
-      const moons = [];
-      if (p.moons){
-        for (const m of p.moons){
-          const moonMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(m.radius, 16, 12),
-            new THREE.MeshStandardMaterial({
-              color: m.color, roughness: 0.85, emissive: m.color, emissiveIntensity: 0.08
-            })
-          );
-          planetGroup.add(moonMesh);
-
-          const moonMeta = {
-            name: m.name, moon: true, systemIndex: sysIdx,
-            focusTarget: moonMesh,
-            info: Object.assign({ parent: p.name }, m.info)
-          };
-          moonMesh.userData.solar = moonMeta;
-
-          moons.push({
-            mesh: moonMesh, data: m,
-            orbitRadius: m.orbitRadius, speed: m.speed,
-            angle: Math.random() * Math.PI * 2
-          });
-        }
-      }
-
-      planetGroup.position.x = Math.cos(p.initAngle) * p.orbitRadius;
-      planetGroup.position.z = Math.sin(p.initAngle) * p.orbitRadius;
-
-      planets.push({
-        data: p, mesh, group: planetGroup, moons,
-        orbitRadius: p.orbitRadius,
-        angle: p.initAngle,
-        angularSpeed: 0.6 / Math.pow(p.period, 0.4),
-        mass: 3 + p.radius * 6,
-        orbitLine
+      starObjs.push({
+        group: starGroup,
+        data: sd,
+        phase: sd.phase || 0,
+        orbitRadius: sd.orbitRadius || 0,
+        orbitSpeed: sd.orbitSpeed || 0.4
       });
     }
 
+    // Build planets
+    const planets = [];
+    if (sysData.planets){
+      for (const p of sysData.planets){
+        const planetGroup = new THREE.Group();
+        sysGroup.add(planetGroup);
+
+        const mesh = new THREE.Mesh(
+          new THREE.SphereGeometry(p.radius, 24, 18),
+          new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.72, metalness: 0.05, emissive: p.color, emissiveIntensity: 0.1 })
+        );
+        planetGroup.add(mesh);
+
+        const planetMeta = {
+          name: p.name, planet: true, systemIndex: sysIdx,
+          focusTarget: planetGroup, planetRadius: p.radius, info: p.info
+        };
+        mesh.userData.solar = planetMeta;
+
+        const pts = [];
+        for (let i = 0; i <= 128; i++){
+          const a = i / 128 * Math.PI * 2;
+          pts.push(new THREE.Vector3(Math.cos(a) * p.orbitRadius, 0, Math.sin(a) * p.orbitRadius));
+        }
+        const orbitLine = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts),
+          new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.22 })
+        );
+        sysGroup.add(orbitLine);
+
+        if (p.ring){
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(p.radius * 1.4, p.radius * 2.2, 64),
+            new THREE.MeshBasicMaterial({ color: 0xd8c088, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
+          );
+          ring.rotation.x = Math.PI / 2 + 0.15;
+          planetGroup.add(ring);
+        }
+
+        const moons = [];
+        if (p.moons){
+          for (const m of p.moons){
+            const moonMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(m.radius, 14, 10),
+              new THREE.MeshStandardMaterial({ color: m.color, roughness: 0.85, emissive: m.color, emissiveIntensity: 0.08 })
+            );
+            planetGroup.add(moonMesh);
+
+            const moonMeta = {
+              name: m.name, moon: true, systemIndex: sysIdx,
+              focusTarget: moonMesh,
+              info: Object.assign({ parent: p.name }, m.info)
+            };
+            moonMesh.userData.solar = moonMeta;
+
+            moons.push({
+              mesh: moonMesh, data: m,
+              orbitRadius: m.orbitRadius, speed: m.speed,
+              angle: Math.random() * Math.PI * 2
+            });
+          }
+        }
+
+        planetGroup.position.x = Math.cos(p.initAngle) * p.orbitRadius;
+        planetGroup.position.z = Math.sin(p.initAngle) * p.orbitRadius;
+
+        planets.push({
+          data: p, mesh, group: planetGroup, moons,
+          orbitRadius: p.orbitRadius,
+          angle: p.initAngle,
+          angularSpeed: 0.6 / Math.pow(p.period, 0.4),
+          mass: 3 + p.radius * 6,
+          orbitLine
+        });
+      }
+    }
+
     SOLAR.systems.push({
-      data: sysData, group: sysGroup, starGroup,
-      starMass: sysData.starMass, planets
+      data: sysData, group: sysGroup, stars: starObjs,
+      starMass: sysData.starMass || 80, planets
     });
   }
 
@@ -1183,15 +1301,10 @@ body.focus #menuWrap{display:none!important}
     SOLAR.fabric = null;
 
     buildFabric();
-
-    for (let i = 0; i < SYSTEMS_DATA.length; i++){
-      buildStarSystem(SYSTEMS_DATA[i], i);
-    }
-
+    for (let i = 0; i < SYSTEMS_DATA.length; i++) buildStarSystem(SYSTEMS_DATA[i], i);
     buildExoticBodies();
 
-    defR = 260;
-    goal.theta = 0.5; goal.phi = 1.15;
+    defR = 380;
   }
 
   function updateSolar(dt){
@@ -1199,8 +1312,17 @@ body.focus #menuWrap{display:none!important}
     const time = performance.now() / 1000;
 
     for (const sys of SOLAR.systems){
-      if (sys.starGroup) animateStar(sys.starGroup, time, dt);
+      // Stars (may be binary)
+      for (const star of sys.stars){
+        if (star.orbitRadius > 0){
+          const angle = star.phase + time * star.orbitSpeed;
+          star.group.position.x = Math.cos(angle) * star.orbitRadius;
+          star.group.position.z = Math.sin(angle) * star.orbitRadius;
+        }
+        animateStar(star.group, time, dt);
+      }
 
+      // Planets
       if (speed > 0.01){
         for (const p of sys.planets){
           p.angle += p.angularSpeed * speed * dt;
@@ -1217,12 +1339,12 @@ body.focus #menuWrap{display:none!important}
       }
     }
 
-    // Exotic objects keep animating even when time is paused
     animateExotic(dt * Math.max(speed, 0.35), time);
 
     if (SOLAR.showFabric) updateFabric();
   }
 
+  // ======================= SOLAR INFO & FOCUS =======================
   function showSolarInfo(info){
     if (!info) return;
     if (info.isExotic){
@@ -1233,14 +1355,13 @@ body.focus #menuWrap{display:none!important}
     } else if (info.isStar){
       showCard(info.name, [
         ['Type', info.info.type],
-        ['Surface temp', info.info.temp],
-        ['Planets', info.info.planets]
+        ['Surface temp', info.info.temp]
       ], info.info.desc);
     } else if (info.planet){
       showCard(info.name, [
         ['Distance from star', info.info.distance],
         ['Orbital period', info.info.period],
-        ['Rotation period', info.info.rotation],
+        ['Rotation', info.info.rotation],
         ['Moons', info.info.moons]
       ], info.info.desc);
     } else if (info.moon){
@@ -1266,9 +1387,9 @@ body.focus #menuWrap{display:none!important}
     if (info.isExotic){
       goal.radius = info.zoomRadius || 20;
     } else if (info.isStar){
-      goal.radius = info.systemIndex === 0 ? 70 : 22;
+      goal.radius = Math.max(8, (info.starRadius || 1) * 8);
     } else if (info.planet){
-      goal.radius = Math.max(6, info.planetRadius * 10);
+      goal.radius = Math.max(6, (info.planetRadius || 0.5) * 10);
     } else if (info.moon){
       goal.radius = 1.5;
     }
@@ -1283,34 +1404,41 @@ body.focus #menuWrap{display:none!important}
 
     if (idx === -1){
       goal.target.set(0, 0, 0);
-      goal.radius = 260;
-      showCard('Overview', [
-        ['Systems', 'Solar System · Proxima Centauri'],
-        ['Exotic objects', 'Neutron star · Black hole'],
-        ['Note', 'Distances compressed for visualisation']
-      ], 'Everything is drawn to scale relative to each other, not to real interstellar distances. Tap a chip or click any body to zoom in.');
-    } else if (idx < SOLAR.systems.length){
+      goal.radius = 380;
+      showCard('Our galactic neighborhood', [
+        ['Systems', '9 systems + 2 exotic objects'],
+        ['Span', '~50 light-years (compressed)'],
+        ['Galaxy', 'Milky Way']
+      ], 'All destinations here live within our own galaxy — a compressed map of our local stellar neighborhood. Tap a chip or click any body to zoom in.');
+      return;
+    }
+
+    if (idx < SOLAR.systems.length){
       const sys = SOLAR.systems[idx];
       if (!sys) return;
       goal.target.copy(sys.data.center);
-      goal.radius = idx === 0 ? 70 : 22;
+      goal.radius = sys.data.zoomRadius || 25;
+      const starNames = sys.data.stars.map(s => s.name).join(' + ');
+      const isBinary = sys.data.stars.length > 1;
+      const planetCount = sys.data.planets ? sys.data.planets.length : 0;
       showCard(sys.data.name, [
-        ['Star', sys.data.star.name],
-        ['Type', sys.data.star.type],
-        ['Planets', sys.data.planets.length]
-      ], sys.data.star.desc);
-    } else {
-      const exIdx = idx - SOLAR.systems.length;
-      const ex = SOLAR.exoticBodies[exIdx];
-      if (!ex) return;
-      goal.target.copy(ex.data.position);
-      goal.radius = ex.data.zoomRadius;
-      showSolarInfo({
-        name: ex.data.name,
-        isExotic: true,
-        info: ex.data.info
-      });
+        ['Type', isBinary ? 'Binary star system' : 'Single star system'],
+        ['Stars', starNames],
+        ['Planets', planetCount]
+      ], sys.data.summary || 'A stellar system in our local neighborhood.');
+      return;
     }
+
+    const exIdx = idx - SOLAR.systems.length;
+    const ex = SOLAR.exoticBodies[exIdx];
+    if (!ex) return;
+    goal.target.copy(ex.data.position);
+    goal.radius = ex.data.zoomRadius;
+    showSolarInfo({
+      name: ex.data.name,
+      isExotic: true,
+      info: ex.data.info
+    });
   }
 
   function updateSolarChips(){
@@ -1343,7 +1471,7 @@ body.focus #menuWrap{display:none!important}
     $('solarFabric').setAttribute('aria-pressed', SOLAR.showFabric ? 'true' : 'false');
   });
 
-  // ---------- Periodic table ----------
+  // ======================= PERIODIC TABLE =======================
   const CATS=['Alkali metal','Alkaline earth','Transition metal','Post-transition','Metalloid','Nonmetal','Halogen','Noble gas','Lanthanide','Actinide'];
   const CATC=[0xf87171,0xfb923c,0x6366f1,0x2dd4bf,0xa78bfa,0x4ade80,0xa3e635,0xf472b6,0x38bdf8,0xe879f9];
   function catOf(Z){
@@ -1588,7 +1716,7 @@ body.focus #menuWrap{display:none!important}
   }
   function openAtom(Z){ clearTableSelection(); if(view!=='atom') setView('atom'); build(Z-1); }
 
-  // ---------- Views and menu ----------
+  // ======================= VIEWS & MENU =======================
   function enterView(){
     focused=null; lastHover=null;
     if(view !== 'solar') goal.target.set(0, 0, 0);
@@ -1613,6 +1741,7 @@ body.focus #menuWrap{display:none!important}
     ladder.hidden=!atom;
     $('speedLabel').textContent = atom ? 'Electron speed' : (solar ? 'Time scale' : 'Spin speed');
     openGroup=null; userZoomed=false;
+
     if(atom){
       $('title').textContent=cur.name;
       $('sub').textContent=ELS[cur.Z-1][0]+'-'+cur.A+' · atomic number '+cur.Z+' · '+cur.N+' neutron'+(cur.N===1?'':'s')+' · shells '+cur.sh.join(', ');
@@ -1628,24 +1757,24 @@ body.focus #menuWrap{display:none!important}
     } else if(solar){
       buildSolarSystem();
       enterView();
+      SOLAR.currentSystem = 0;
+      updateSolarChips();
       const solCenter = SOLAR.systems[0].data.center;
       goal.target.copy(solCenter);
-      goal.radius = 70;
-      cam.radius = 70;
+      goal.radius = 75;
       cam.target.copy(solCenter);
+      cam.radius = 75;
       cam.theta = 0.4;
       cam.phi = 1.2;
       goal.theta = 0.4;
       goal.phi = 1.2;
-      SOLAR.currentSystem = 0;
-      updateSolarChips();
-      $('title').textContent='Solar system';
-      $('sub').textContent='Drag to orbit · scroll to zoom out and see Proxima, a neutron star, and a black hole';
-      showCard('Solar System', [
-        ['Star', 'The Sun (G2V)'],
-        ['Planets', '8'],
-        ['Nearest star', 'Proxima Centauri (4.24 ly)']
-      ], 'Zoom out to reveal Proxima Centauri, a pulsar, and a black hole — all sagging into the fabric of spacetime.');
+      $('title').textContent='Our galactic neighborhood';
+      $('sub').textContent='Compressed map of nearby stars within our Milky Way · drag to orbit · scroll out to see everything';
+      showCard('Local stellar neighborhood', [
+        ['Home', 'Solar System'],
+        ['Closest star', 'Proxima Centauri (4.24 ly)'],
+        ['Destinations', '9 systems + 2 exotic objects']
+      ], 'All objects here live within our own galaxy. Distances are compressed so nearby stars, red giants, blue supergiants and stellar remnants all fit on screen together.');
     } else {
       buildMol(curIdx[v]);
       goal.theta=0.6; goal.phi=1.2;
@@ -1682,7 +1811,7 @@ body.focus #menuWrap{display:none!important}
   const showSpeed=()=>{ $('speedOut').textContent=(+slider.value).toFixed(1)+'×'; };
   slider.addEventListener('input', showSpeed); showSpeed();
 
-  // ---------- Info card and focus ----------
+  // ======================= CARD & FOCUS =======================
   function showCard(title, rows, text){
     card.querySelector('b').textContent=title;
     $('dl').innerHTML=rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
@@ -1741,9 +1870,9 @@ body.focus #menuWrap{display:none!important}
     card.classList.remove('on'); setPart(0); renderLadder(-1);
   }
 
-  // ---------- Camera, zoom, pan and picking ----------
+  // ======================= CAMERA & PICKING =======================
   const cam={theta:0.6, phi:1.2, radius:14, target:new V()}, goal={theta:0.6, phi:1.2, radius:14, target:new V()};
-  const R_MIN=1.5, R_MAX=400;
+  const R_MIN=1.5, R_MAX=600;
   let dragging=false, moved=0, mode='orbit', hovered=null, focused=null, lastHover=null, userZoomed=false, pinch=null;
   let lastX=0, lastY=0;
   const ptrs=new Map();
@@ -1754,15 +1883,13 @@ body.focus #menuWrap{display:none!important}
     if(view==='solar'){
       const items = [];
       for (const sys of SOLAR.systems){
-        items.push(sys.starGroup);
+        for (const star of sys.stars) items.push(star.group);
         for (const p of sys.planets){
           items.push(p.mesh);
           for (const m of p.moons) items.push(m.mesh);
         }
       }
-      for (const ex of SOLAR.exoticBodies){
-        items.push(ex.bodyGroup);
-      }
+      for (const ex of SOLAR.exoticBodies) items.push(ex.bodyGroup);
       return items;
     }
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
@@ -1829,13 +1956,9 @@ body.focus #menuWrap{display:none!important}
       if(hit) handleTableTap(hit.object.userData.Z);
       else { clearTableSelection(); lastHover = null; card.classList.remove('on'); }
     } else if(view==='solar'){
-      if (hit && hit.object.userData.solar){
-        focusSolar(hit.object);
-      } else {
-        const cur = SOLAR.currentSystem;
-        if (cur >= 0 && cur < SOLAR.systems.length) focusSystemView(cur);
-        else focusSystemView(-1);
-      }
+      if (hit && hit.object.userData.solar) focusSolar(hit.object);
+      else if (SOLAR.currentSystem >= 0) focusSystemView(SOLAR.currentSystem);
+      else focusSystemView(-1);
     } else {
       hit ? focus(hit.object) : reset();
     }
@@ -1883,13 +2006,10 @@ body.focus #menuWrap{display:none!important}
       updateSolar(dt);
     }
 
-    // Pull target toward origin when zooming way out in solar view (unless focused)
-    if (view === 'solar' && !focused){
-      if (goal.radius > 130) focused = null;
-      if (goal.radius > 100){
-        goal.target.x *= 0.98;
-        goal.target.z *= 0.98;
-      }
+    // Solar auto-center pull when zoomed out
+    if (view === 'solar' && !focused && goal.radius > 150){
+      goal.target.x *= 0.98;
+      goal.target.z *= 0.98;
     }
 
     const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='solar'?solarRoot:molRoot;
