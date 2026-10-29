@@ -178,10 +178,12 @@ body.focus #menuWrap{display:none!important}
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
     </div>
     <div class="sec" id="solarUI" hidden>
-      <div class="chips" id="solarSystems" role="group" aria-label="Solar systems">
+      <div class="chips" id="solarSystems" role="group" aria-label="Destinations">
         <button class="chip wide" data-sys="0" type="button" aria-pressed="true">Solar System</button>
         <button class="chip wide" data-sys="1" type="button" aria-pressed="false">Proxima Centauri</button>
-        <button class="chip wide" data-sys="-1" type="button" aria-pressed="false">Interstellar</button>
+        <button class="chip wide" data-sys="2" type="button" aria-pressed="false">Neutron star</button>
+        <button class="chip wide" data-sys="3" type="button" aria-pressed="false">Black hole</button>
+        <button class="chip wide" data-sys="-1" type="button" aria-pressed="false">Overview</button>
       </div>
       <div class="chips" id="solarTools" role="group" aria-label="Solar system controls">
         <button class="chip wide" id="solarOrbits" type="button" aria-pressed="true">Orbits</button>
@@ -310,11 +312,11 @@ body.focus #menuWrap{display:none!important}
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x35506a, 0.9));
   const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4,6,5); scene.add(key);
   const sp = [];
-  for(let i=0;i<1400;i++){ const r=150+Math.random()*200, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
+  for(let i=0;i<1800;i++){ const r=200+Math.random()*300, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
@@ -614,10 +616,11 @@ body.focus #menuWrap{display:none!important}
   }
 
   // ============================================================
-  // SOLAR SYSTEM (multi-system: Sol + Proxima Centauri)
+  // SOLAR SYSTEM (Solar System + Proxima Centauri + exotic objects)
   // ============================================================
   const SOLAR = {
     systems: [],
+    exoticBodies: [],
     fabric: null,
     showOrbits: true,
     showMoons: true,
@@ -720,6 +723,33 @@ body.focus #menuWrap{display:none!important}
     }
   ];
 
+  const EXOTIC_DATA = [
+    {
+      name: 'Neutron star',
+      type: 'neutronStar',
+      position: new V(0, 0, 80),
+      fabricMass: 140,
+      zoomRadius: 18,
+      info: {
+        type: 'Pulsar (rotating neutron star)',
+        temp: '~600,000 °C surface',
+        desc: 'A collapsed stellar core — roughly 1.4 solar masses packed into a sphere only about 20 km across. A teaspoon of its matter would weigh billions of tonnes on Earth. Rapidly spinning magnetic poles sweep beams of radiation through space, seen as regular radio pulses.'
+      }
+    },
+    {
+      name: 'Black hole',
+      type: 'blackHole',
+      position: new V(0, 0, -80),
+      fabricMass: 320,
+      zoomRadius: 22,
+      info: {
+        type: 'Stellar-mass black hole (rotating)',
+        temp: 'No emission from the horizon',
+        desc: 'A region where gravity is so strong that nothing — not even light — can escape. The bright ring is the accretion disk of superheated matter spiralling in and radiating away its energy. The dark sphere is the event horizon — the point of no return.'
+      }
+    }
+  ];
+
   // ----- Burning star visual -----
   function createBurningStar(color, radius){
     const group = new THREE.Group();
@@ -769,13 +799,112 @@ body.focus #menuWrap{display:none!important}
     const light = new THREE.PointLight(color, 2.2, radius * 60);
     group.add(light);
 
-    group.userData.starFx = { core, glow1, glow2, corona, sparks, light, radius };
+    group.userData.starFx = { core, glow1, glow2, corona, sparks, light, radius, type:'star' };
+    return group;
+  }
+
+  // ----- Neutron star / pulsar -----
+  function createNeutronStar(){
+    const group = new THREE.Group();
+
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0xaaddff })
+    );
+    group.add(core);
+
+    const glow1 = new THREE.Mesh(
+      new THREE.SphereGeometry(1.1, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(glow1);
+
+    const glow2 = new THREE.Mesh(
+      new THREE.SphereGeometry(1.8, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(glow2);
+
+    // Pulsar beams
+    const beams = new THREE.Group();
+    for (const sign of [1, -1]){
+      const beamGeo = new THREE.ConeGeometry(0.6, 9, 16, 1, true);
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: 0xaaddff, transparent:true, opacity:0.22,
+        blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite:false
+      });
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.y = sign * 4.5;
+      if (sign < 0) beam.rotation.x = Math.PI;
+      beams.add(beam);
+    }
+    group.add(beams);
+
+    const light = new THREE.PointLight(0x99ccff, 2.5, 60);
+    group.add(light);
+
+    group.userData.starFx = { core, glow1, glow2, beams, light, type:'neutronStar' };
+    return group;
+  }
+
+  // ----- Black hole -----
+  function createBlackHole(){
+    const group = new THREE.Group();
+
+    // Event horizon — pure black
+    const horizon = new THREE.Mesh(
+      new THREE.SphereGeometry(1.6, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    group.add(horizon);
+
+    // Faint halo so the horizon edge reads against space
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.75, 32, 24),
+      new THREE.MeshBasicMaterial({ color: 0x221133, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(halo);
+
+    // Photon ring — bright thin ring just outside the horizon
+    const photonGeo = new THREE.RingGeometry(2.2, 2.5, 64);
+    const photonMat = new THREE.MeshBasicMaterial({
+      color: 0xffcc88, side: THREE.DoubleSide,
+      transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false
+    });
+    const photon = new THREE.Mesh(photonGeo, photonMat);
+    photon.rotation.x = Math.PI / 2;
+    group.add(photon);
+
+    // Outer accretion disk
+    const diskGeo = new THREE.RingGeometry(2.6, 6.5, 80);
+    const diskMat = new THREE.MeshBasicMaterial({
+      color: 0xff6622, side: THREE.DoubleSide,
+      transparent:true, opacity:0.5, blending:THREE.AdditiveBlending, depthWrite:false
+    });
+    const disk = new THREE.Mesh(diskGeo, diskMat);
+    disk.rotation.x = Math.PI / 2 - 0.35;
+    group.add(disk);
+
+    // Inner hot disk (bright)
+    const innerDiskGeo = new THREE.RingGeometry(2.5, 4.0, 64);
+    const innerDiskMat = new THREE.MeshBasicMaterial({
+      color: 0xffcc44, side: THREE.DoubleSide,
+      transparent:true, opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false
+    });
+    const innerDisk = new THREE.Mesh(innerDiskGeo, innerDiskMat);
+    innerDisk.rotation.x = Math.PI / 2 - 0.35;
+    group.add(innerDisk);
+
+    const light = new THREE.PointLight(0xff8844, 2.0, 80);
+    group.add(light);
+
+    group.userData.starFx = { horizon, halo, photon, disk, innerDisk, light, type:'blackHole' };
     return group;
   }
 
   function animateStar(starGroup, time, dt){
     const fx = starGroup.userData.starFx;
-    if (!fx) return;
+    if (!fx || fx.type !== 'star') return;
 
     fx.glow1.scale.setScalar(1 + Math.sin(time * 2.3) * 0.03);
     fx.glow2.scale.setScalar(1 + Math.sin(time * 1.7 + 0.7) * 0.05);
@@ -791,15 +920,34 @@ body.focus #menuWrap{display:none!important}
     fx.sparks.rotation.x += dt * 0.2;
   }
 
+  function animateExotic(dt, time){
+    for (const ex of SOLAR.exoticBodies){
+      const fx = ex.bodyGroup.userData.starFx;
+      if (!fx) continue;
+
+      if (fx.type === 'neutronStar'){
+        ex.bodyGroup.rotation.y += dt * 2.5;
+        if (fx.beams) fx.beams.rotation.y += dt * 1.8;
+        if (fx.glow1) fx.glow1.scale.setScalar(1 + Math.sin(time * 4) * 0.05);
+        if (fx.glow2) fx.glow2.scale.setScalar(1 + Math.sin(time * 2.5 + 1) * 0.06);
+        if (fx.light) fx.light.intensity = 2.3 + Math.sin(time * 5) * 0.4;
+      } else if (fx.type === 'blackHole'){
+        if (fx.disk) fx.disk.rotation.z += dt * 0.2;
+        if (fx.innerDisk) fx.innerDisk.rotation.z += dt * 0.45;
+        if (fx.photon) fx.photon.rotation.z += dt * 0.08;
+        if (fx.halo) fx.halo.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
+      }
+    }
+  }
+
   // ----- Spacetime fabric -----
   function buildFabric(){
-    const segments = 60;
-    const size = 240;
+    const segments = 80;
+    const size = 280;
     const half = size / 2;
     const step = size / segments;
 
     const verts = [];
-
     for (let i = 0; i <= segments; i++){
       const z = -half + i * step;
       for (let j = 0; j < segments; j++){
@@ -855,6 +1003,9 @@ body.focus #menuWrap{display:none!important}
         });
       }
     }
+    for (const ex of SOLAR.exoticBodies){
+      masses.push({ x: ex.data.position.x, z: ex.data.position.z, mass: ex.data.fabricMass });
+    }
 
     const mc = masses.length;
     for (let i = 0; i < pos.count; i++){
@@ -867,14 +1018,14 @@ body.focus #menuWrap{display:none!important}
         const dz = z - m.z;
         dip -= m.mass / (dx*dx + dz*dz + 5);
       }
-      if (dip < -25) dip = -25;
+      if (dip < -40) dip = -40;
       pos.setY(i, dip);
 
-      const depth = Math.min(1, -dip / 18);
+      const depth = Math.min(1, -dip / 28);
       col.setXYZ(i,
-        0.25 + depth * 0.5,
-        0.75 - depth * 0.55,
-        0.94 - depth * 0.05
+        0.25 + depth * 0.7,
+        0.75 - depth * 0.65,
+        0.94 - depth * 0.85
       );
     }
 
@@ -994,9 +1145,41 @@ body.focus #menuWrap{display:none!important}
     });
   }
 
+  function buildExoticBodies(){
+    SOLAR.exoticBodies = [];
+    EXOTIC_DATA.forEach((data, i) => {
+      const group = new THREE.Group();
+      group.position.copy(data.position);
+      solarRoot.add(group);
+
+      let bodyGroup;
+      if (data.type === 'neutronStar') bodyGroup = createNeutronStar();
+      else if (data.type === 'blackHole') bodyGroup = createBlackHole();
+      else return;
+
+      group.add(bodyGroup);
+
+      const meta = {
+        name: data.name,
+        isExotic: true,
+        systemIndex: SOLAR.systems.length + i,
+        focusTarget: group,
+        zoomRadius: data.zoomRadius,
+        info: data.info
+      };
+      bodyGroup.userData.solar = meta;
+      bodyGroup.traverse(child => {
+        if (child.isMesh) child.userData.solar = meta;
+      });
+
+      SOLAR.exoticBodies.push({ data, group, bodyGroup });
+    });
+  }
+
   function buildSolarSystem(){
     clearRoot(solarRoot);
     SOLAR.systems = [];
+    SOLAR.exoticBodies = [];
     SOLAR.fabric = null;
 
     buildFabric();
@@ -1005,7 +1188,9 @@ body.focus #menuWrap{display:none!important}
       buildStarSystem(SYSTEMS_DATA[i], i);
     }
 
-    defR = 190;
+    buildExoticBodies();
+
+    defR = 260;
     goal.theta = 0.5; goal.phi = 1.15;
   }
 
@@ -1032,12 +1217,20 @@ body.focus #menuWrap{display:none!important}
       }
     }
 
+    // Exotic objects keep animating even when time is paused
+    animateExotic(dt * Math.max(speed, 0.35), time);
+
     if (SOLAR.showFabric) updateFabric();
   }
 
   function showSolarInfo(info){
     if (!info) return;
-    if (info.isStar){
+    if (info.isExotic){
+      showCard(info.name, [
+        ['Type', info.info.type],
+        ['Note', info.info.temp]
+      ], info.info.desc);
+    } else if (info.isStar){
       showCard(info.name, [
         ['Type', info.info.type],
         ['Surface temp', info.info.temp],
@@ -1063,17 +1256,20 @@ body.focus #menuWrap{display:none!important}
     const info = body.userData.solar;
     if (!info) return;
 
-    SOLAR.currentSystem = info.systemIndex;
-    updateSolarChips();
+    if (info.systemIndex !== undefined){
+      SOLAR.currentSystem = info.systemIndex;
+      updateSolarChips();
+    }
 
-    if (info.isStar){
-      focused = info.focusTarget;
+    focused = info.focusTarget;
+
+    if (info.isExotic){
+      goal.radius = info.zoomRadius || 20;
+    } else if (info.isStar){
       goal.radius = info.systemIndex === 0 ? 70 : 22;
     } else if (info.planet){
-      focused = info.focusTarget;
       goal.radius = Math.max(6, info.planetRadius * 10);
     } else if (info.moon){
-      focused = info.focusTarget;
       goal.radius = 1.5;
     }
 
@@ -1087,13 +1283,13 @@ body.focus #menuWrap{display:none!important}
 
     if (idx === -1){
       goal.target.set(0, 0, 0);
-      goal.radius = 190;
-      showCard('Interstellar view', [
-        ['Distance', '4.24 light-years'],
-        ['Systems', '2'],
-        ['Note', 'Distance is compressed to fit both systems on screen']
-      ], 'The nearest star system to our Sun. In reality, Proxima is 4.24 light-years away — about 270,000 times the Earth–Sun distance.');
-    } else {
+      goal.radius = 260;
+      showCard('Overview', [
+        ['Systems', 'Solar System · Proxima Centauri'],
+        ['Exotic objects', 'Neutron star · Black hole'],
+        ['Note', 'Distances compressed for visualisation']
+      ], 'Everything is drawn to scale relative to each other, not to real interstellar distances. Tap a chip or click any body to zoom in.');
+    } else if (idx < SOLAR.systems.length){
       const sys = SOLAR.systems[idx];
       if (!sys) return;
       goal.target.copy(sys.data.center);
@@ -1103,6 +1299,17 @@ body.focus #menuWrap{display:none!important}
         ['Type', sys.data.star.type],
         ['Planets', sys.data.planets.length]
       ], sys.data.star.desc);
+    } else {
+      const exIdx = idx - SOLAR.systems.length;
+      const ex = SOLAR.exoticBodies[exIdx];
+      if (!ex) return;
+      goal.target.copy(ex.data.position);
+      goal.radius = ex.data.zoomRadius;
+      showSolarInfo({
+        name: ex.data.name,
+        isExotic: true,
+        info: ex.data.info
+      });
     }
   }
 
@@ -1195,7 +1402,6 @@ body.focus #menuWrap{display:none!important}
   const SECTION_INFO = {
     c1:{name:'Group 1 · Alkali metals', desc:'Soft, highly reactive metals that react vigorously with water.'},
     c2:{name:'Group 2 · Alkaline earth metals', desc:'Reactive metals, harder than group 1.'},
-    d:{name:'Transition metals', desc:'Hard, dense metals with variable oxidation states.'},
     c3:{name:'Group 3 · Scandium group', desc:'Start of the f-block series.'},
     c4:{name:'Group 4 · Titanium group', desc:'Light, corrosion-resistant metals.'},
     c5:{name:'Group 5 · Vanadium group', desc:'Vanadium, niobium, tantalum.'},
@@ -1434,12 +1640,12 @@ body.focus #menuWrap{display:none!important}
       SOLAR.currentSystem = 0;
       updateSolarChips();
       $('title').textContent='Solar system';
-      $('sub').textContent='Drag to orbit · scroll to zoom out and see Proxima Centauri · click a body for details';
+      $('sub').textContent='Drag to orbit · scroll to zoom out and see Proxima, a neutron star, and a black hole';
       showCard('Solar System', [
         ['Star', 'The Sun (G2V)'],
         ['Planets', '8'],
         ['Nearest star', 'Proxima Centauri (4.24 ly)']
-      ], 'Zoom out to reveal Proxima Centauri and the fabric of spacetime sagging under each body\'s gravity.');
+      ], 'Zoom out to reveal Proxima Centauri, a pulsar, and a black hole — all sagging into the fabric of spacetime.');
     } else {
       buildMol(curIdx[v]);
       goal.theta=0.6; goal.phi=1.2;
@@ -1537,7 +1743,7 @@ body.focus #menuWrap{display:none!important}
 
   // ---------- Camera, zoom, pan and picking ----------
   const cam={theta:0.6, phi:1.2, radius:14, target:new V()}, goal={theta:0.6, phi:1.2, radius:14, target:new V()};
-  const R_MIN=1.5, R_MAX=320;
+  const R_MIN=1.5, R_MAX=400;
   let dragging=false, moved=0, mode='orbit', hovered=null, focused=null, lastHover=null, userZoomed=false, pinch=null;
   let lastX=0, lastY=0;
   const ptrs=new Map();
@@ -1553,6 +1759,9 @@ body.focus #menuWrap{display:none!important}
           items.push(p.mesh);
           for (const m of p.moons) items.push(m.mesh);
         }
+      }
+      for (const ex of SOLAR.exoticBodies){
+        items.push(ex.bodyGroup);
       }
       return items;
     }
@@ -1623,7 +1832,9 @@ body.focus #menuWrap{display:none!important}
       if (hit && hit.object.userData.solar){
         focusSolar(hit.object);
       } else {
-        focusSystemView(SOLAR.currentSystem >= 0 ? SOLAR.currentSystem : -1);
+        const cur = SOLAR.currentSystem;
+        if (cur >= 0 && cur < SOLAR.systems.length) focusSystemView(cur);
+        else focusSystemView(-1);
       }
     } else {
       hit ? focus(hit.object) : reset();
@@ -1672,10 +1883,13 @@ body.focus #menuWrap{display:none!important}
       updateSolar(dt);
     }
 
-    // Solar auto-pull when zoomed way out (reveals both systems)
-    if (view === 'solar' && !focused && goal.radius > 160){
-      goal.target.x *= 0.97;
-      goal.target.z *= 0.97;
+    // Pull target toward origin when zooming way out in solar view (unless focused)
+    if (view === 'solar' && !focused){
+      if (goal.radius > 130) focused = null;
+      if (goal.radius > 100){
+        goal.target.x *= 0.98;
+        goal.target.z *= 0.98;
+      }
     }
 
     const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='solar'?solarRoot:molRoot;
@@ -1720,11 +1934,14 @@ body.focus #menuWrap{display:none!important}
     } else if(view==='solar'){
       const hv = hovered ? hovered.object : null;
       list.forEach(o=>{
-        if (o.isMesh && o.material && o.material.emissiveIntensity !== undefined){
-          const base = (o.userData.solar && o.userData.solar.isStar) ? 0.4 : 0.1;
-          const target = (hv === o) ? base + 0.4 : base;
-          o.material.emissiveIntensity += (target - o.material.emissiveIntensity) * 0.15;
-        }
+        if (!o) return;
+        o.traverse(child => {
+          if (child.isMesh && child.material && child.material.emissiveIntensity !== undefined){
+            const base = (child.userData.solar && (child.userData.solar.isStar || child.userData.solar.isExotic)) ? 0.35 : 0.1;
+            const target = (hv && (hv === child || (hv.parent && hv.parent === child))) ? base + 0.4 : base;
+            child.material.emissiveIntensity += (target - child.material.emissiveIntensity) * 0.15;
+          }
+        });
       });
     } else {
       list.forEach(o=>{
