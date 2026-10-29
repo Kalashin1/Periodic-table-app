@@ -178,10 +178,15 @@ body.focus #menuWrap{display:none!important}
       <div class="chips" id="pickItems" role="group" aria-label="Compounds" hidden></div>
     </div>
     <div class="sec" id="solarUI" hidden>
+      <div class="chips" id="solarSystems" role="group" aria-label="Solar systems">
+        <button class="chip wide" data-sys="0" type="button" aria-pressed="true">Solar System</button>
+        <button class="chip wide" data-sys="1" type="button" aria-pressed="false">Proxima Centauri</button>
+        <button class="chip wide" data-sys="-1" type="button" aria-pressed="false">Interstellar</button>
+      </div>
       <div class="chips" id="solarTools" role="group" aria-label="Solar system controls">
         <button class="chip wide" id="solarOrbits" type="button" aria-pressed="true">Orbits</button>
         <button class="chip wide" id="solarMoons" type="button" aria-pressed="true">Moons</button>
-        <button class="chip wide" id="solarReset" type="button">Reset view</button>
+        <button class="chip wide" id="solarFabric" type="button" aria-pressed="true">Spacetime</button>
       </div>
     </div>
     <div class="sec" id="tableUI" hidden>
@@ -309,7 +314,7 @@ body.focus #menuWrap{display:none!important}
   scene.add(new THREE.HemisphereLight(0xffffff, 0x35506a, 0.9));
   const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4,6,5); scene.add(key);
   const sp = [];
-  for(let i=0;i<1400;i++){ const r=60+Math.random()*60, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
+  for(let i=0;i<1400;i++){ const r=150+Math.random()*200, u=Math.random()*2-1, a=Math.random()*Math.PI*2, q=Math.sqrt(1-u*u); sp.push(r*q*Math.cos(a), r*u, r*q*Math.sin(a)); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff, size:1.4, sizeAttenuation:false, transparent:true, opacity:.7})));
 
@@ -608,337 +613,527 @@ body.focus #menuWrap{display:none!important}
       o.traverse(x=>{ if(x.geometry && ![partGeo,partGeoLo,eGeo,unitGeo,cylGeo].includes(x.geometry)) x.geometry.dispose(); }); }
   }
 
-  // ---------- Solar system ----------
+  // ============================================================
+  // SOLAR SYSTEM (multi-system: Sol + Proxima Centauri)
+  // ============================================================
   const SOLAR = {
-    planets: [],
-    orbitLines: [],
-    sun: null,
-    sunGlow: null,
+    systems: [],
+    fabric: null,
     showOrbits: true,
-    showMoons: true
+    showMoons: true,
+    showFabric: true,
+    currentSystem: 0
   };
 
   const PLANET_DATA = [
+    { name:'Mercury', color:0xb8b0a8, radius:0.25, orbitRadius:4.5, period:0.24, initAngle:0,
+      info:{ distance:'0.39 AU', period:'88 days', rotation:'58.6 days', moons:0,
+        desc:'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.' } },
+    { name:'Venus', color:0xe8c17e, radius:0.5, orbitRadius:6.2, period:0.62, initAngle:1.2,
+      info:{ distance:'0.72 AU', period:'225 days', rotation:'243 days (retrograde)', moons:0,
+        desc:'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.' } },
+    { name:'Earth', color:0x4a90d9, radius:0.55, orbitRadius:8.2, period:1.0, initAngle:2.8,
+      moons:[{ name:'Moon', color:0xcccccc, radius:0.15, orbitRadius:1.3, speed:1.4,
+        info:{ period:'27.3 days', diameter:'3,474 km', desc:"Earth's only natural satellite. Stabilises Earth's axial tilt." } }],
+      info:{ distance:'1.00 AU', period:'365.25 days', rotation:'24 hours', moons:1,
+        desc:'The only known planet with liquid water on its surface and life. Has a strong magnetic field and one large moon.' } },
+    { name:'Mars', color:0xc1440e, radius:0.35, orbitRadius:10.4, period:1.88, initAngle:4.1,
+      moons:[
+        { name:'Phobos', color:0xaaaaaa, radius:0.045, orbitRadius:0.75, speed:2.0,
+          info:{ period:'7.7 hours', diameter:'22 km', desc:'The larger, inner moon of Mars. Orbits faster than Mars rotates.' } },
+        { name:'Deimos', color:0xbbbbbb, radius:0.035, orbitRadius:1.1, speed:1.1,
+          info:{ period:'30 hours', diameter:'12 km', desc:'The smaller, outer moon of Mars.' } }],
+      info:{ distance:'1.52 AU', period:'687 days', rotation:'24.6 hours', moons:2,
+        desc:'The red planet. Home to Olympus Mons, the tallest volcano in the solar system.' } },
+    { name:'Jupiter', color:0xd4a373, radius:1.4, orbitRadius:15, period:11.86, initAngle:5.3,
+      moons:[
+        { name:'Io', color:0xffcc44, radius:0.09, orbitRadius:2.5, speed:1.8,
+          info:{ period:'1.77 days', diameter:'3,643 km', desc:'The most volcanically active body in the solar system.' } },
+        { name:'Europa', color:0xe8dcc0, radius:0.08, orbitRadius:3.2, speed:1.4,
+          info:{ period:'3.55 days', diameter:'3,122 km', desc:'Has a subsurface ocean that may harbour life.' } },
+        { name:'Ganymede', color:0xb8a890, radius:0.11, orbitRadius:4.0, speed:1.0,
+          info:{ period:'7.15 days', diameter:'5,268 km', desc:'The largest moon in the solar system — bigger than Mercury.' } },
+        { name:'Callisto', color:0x887766, radius:0.10, orbitRadius:4.9, speed:0.7,
+          info:{ period:'16.7 days', diameter:'4,821 km', desc:'One of the most heavily cratered objects in the solar system.' } }],
+      info:{ distance:'5.20 AU', period:'11.86 years', rotation:'9.9 hours', moons:95,
+        desc:'The largest planet — a gas giant with the Great Red Spot, a storm larger than Earth.' } },
+    { name:'Saturn', color:0xe3c78a, radius:1.2, orbitRadius:20, period:29.46, initAngle:0.4, ring:true,
+      moons:[
+        { name:'Titan', color:0xddaa66, radius:0.10, orbitRadius:2.6, speed:1.0,
+          info:{ period:'16 days', diameter:'5,150 km', desc:"Saturn's largest moon, with a thick nitrogen atmosphere and methane lakes." } },
+        { name:'Rhea', color:0xcccccc, radius:0.05, orbitRadius:2.0, speed:1.6,
+          info:{ period:'4.5 days', diameter:'1,527 km', desc:'A heavily cratered moon of Saturn.' } }],
+      info:{ distance:'9.58 AU', period:'29.46 years', rotation:'10.7 hours', moons:146,
+        desc:'Famous for its spectacular rings of ice and rock, which span over 280,000 km but are only tens of metres thick.' } },
+    { name:'Uranus', color:0xa2d8e8, radius:0.9, orbitRadius:25, period:84.01, initAngle:2.2,
+      moons:[{ name:'Titania', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
+        info:{ period:'8.7 days', diameter:'1,578 km', desc:'The largest moon of Uranus, with deep canyons.' } }],
+      info:{ distance:'19.22 AU', period:'84.01 years', rotation:'17.2 hours (retrograde)', moons:28,
+        desc:'An ice giant that rotates on its side — likely the result of a massive ancient collision.' } },
+    { name:'Neptune', color:0x3c5eb8, radius:0.9, orbitRadius:30, period:164.8, initAngle:3.9,
+      moons:[{ name:'Triton', color:0xbbbbbb, radius:0.06, orbitRadius:1.8, speed:1.2,
+        info:{ period:'5.9 days', diameter:'2,707 km', desc:'A moon with a retrograde orbit — likely a captured Kuiper Belt object.' } }],
+      info:{ distance:'30.05 AU', period:'164.8 years', rotation:'16.1 hours', moons:16,
+        desc:'The windiest planet, with winds exceeding 2,000 km/h.' } }
+  ];
+
+  const PROXIMA_PLANETS = [
+    { name:'Proxima d', color:0xdd8866, radius:0.20, orbitRadius:1.8, period:0.014, initAngle:0,
+      info:{ distance:'0.029 AU', period:'5.12 days', rotation:'tidal lock', moons:0,
+        desc:'A sub-Earth mass planet — the innermost world orbiting Proxima Centauri.' } },
+    { name:'Proxima b', color:0x88bbaa, radius:0.35, orbitRadius:3.0, period:0.031, initAngle:1.5,
+      info:{ distance:'0.0485 AU', period:'11.2 days', rotation:'tidal lock', moons:0,
+        desc:'A roughly Earth-mass planet in the habitable zone. It may have liquid water on its surface.' } },
+    { name:'Proxima c', color:0x6688aa, radius:0.60, orbitRadius:6.0, period:5.28, initAngle:3.2,
+      info:{ distance:'1.49 AU', period:'5.28 years', rotation:'unknown', moons:0,
+        desc:'A super-Earth or mini-Neptune, much farther from its star than Proxima b.' } }
+  ];
+
+  const SYSTEMS_DATA = [
     {
-      name: 'Mercury', color: 0xb8b0a8, radius: 0.25, orbitRadius: 4.5,
-      period: 0.24, initAngle: 0,
-      info: {
-        distance: '0.39 AU', period: '88 days', rotation: '58.6 days', moons: 0,
-        desc: 'The smallest planet and closest to the Sun. Almost no atmosphere, so surface temperatures swing from −173 °C to 427 °C.'
-      }
+      name: 'Solar System',
+      center: new V(-50, 0, 0),
+      starMass: 80,
+      star: {
+        name: 'The Sun',
+        color: 0xffdd44,
+        radius: 1.6,
+        type: 'G-type main-sequence (G2V)',
+        temp: '5,500 °C surface',
+        desc: "A yellow dwarf star at the centre of our solar system. It contains 99.8% of the system's mass and fuses hydrogen into helium in its core."
+      },
+      planets: PLANET_DATA
     },
     {
-      name: 'Venus', color: 0xe8c17e, radius: 0.5, orbitRadius: 6.2,
-      period: 0.62, initAngle: 1.2,
-      info: {
-        distance: '0.72 AU', period: '225 days', rotation: '243 days (retrograde)', moons: 0,
-        desc: 'The hottest planet thanks to a runaway greenhouse effect. Surface temperature is about 465 °C.'
-      }
-    },
-    {
-      name: 'Earth', color: 0x4a90d9, radius: 0.55, orbitRadius: 8.2,
-      period: 1.0, initAngle: 2.8,
-      moons: [
-        { name: 'Moon', color: 0xcccccc, radius: 0.15, orbitRadius: 1.3, speed: 1.4,
-          info: { period: '27.3 days', diameter: '3,474 km', desc: 'Earth\'s only natural satellite. Stabilises Earth\'s axial tilt.' } }
-      ],
-      info: {
-        distance: '1.00 AU', period: '365.25 days', rotation: '24 hours', moons: 1,
-        desc: 'The only known planet with liquid water on its surface and life. Has a strong magnetic field and one large moon.'
-      }
-    },
-    {
-      name: 'Mars', color: 0xc1440e, radius: 0.35, orbitRadius: 10.4,
-      period: 1.88, initAngle: 4.1,
-      moons: [
-        { name: 'Phobos', color: 0xaaaaaa, radius: 0.045, orbitRadius: 0.75, speed: 2.0,
-          info: { period: '7.7 hours', diameter: '22 km', desc: 'The larger, inner moon of Mars. Orbits faster than Mars rotates.' } },
-        { name: 'Deimos', color: 0xbbbbbb, radius: 0.035, orbitRadius: 1.1, speed: 1.1,
-          info: { period: '30 hours', diameter: '12 km', desc: 'The smaller, outer moon of Mars.' } }
-      ],
-      info: {
-        distance: '1.52 AU', period: '687 days', rotation: '24.6 hours', moons: 2,
-        desc: 'The red planet. Home to Olympus Mons, the tallest volcano in the solar system.'
-      }
-    },
-    {
-      name: 'Jupiter', color: 0xd4a373, radius: 1.4, orbitRadius: 15,
-      period: 11.86, initAngle: 5.3,
-      moons: [
-        { name: 'Io', color: 0xffcc44, radius: 0.09, orbitRadius: 2.5, speed: 1.8,
-          info: { period: '1.77 days', diameter: '3,643 km', desc: 'The most volcanically active body in the solar system.' } },
-        { name: 'Europa', color: 0xe8dcc0, radius: 0.08, orbitRadius: 3.2, speed: 1.4,
-          info: { period: '3.55 days', diameter: '3,122 km', desc: 'Has a subsurface ocean that may harbour life.' } },
-        { name: 'Ganymede', color: 0xb8a890, radius: 0.11, orbitRadius: 4.0, speed: 1.0,
-          info: { period: '7.15 days', diameter: '5,268 km', desc: 'The largest moon in the solar system — bigger than Mercury.' } },
-        { name: 'Callisto', color: 0x887766, radius: 0.10, orbitRadius: 4.9, speed: 0.7,
-          info: { period: '16.7 days', diameter: '4,821 km', desc: 'One of the most heavily cratered objects in the solar system.' } }
-      ],
-      info: {
-        distance: '5.20 AU', period: '11.86 years', rotation: '9.9 hours', moons: 95,
-        desc: 'The largest planet — a gas giant with the Great Red Spot, a storm larger than Earth.'
-      }
-    },
-    {
-      name: 'Saturn', color: 0xe3c78a, radius: 1.2, orbitRadius: 20,
-      period: 29.46, initAngle: 0.4, ring: true,
-      moons: [
-        { name: 'Titan', color: 0xddaa66, radius: 0.10, orbitRadius: 2.6, speed: 1.0,
-          info: { period: '16 days', diameter: '5,150 km', desc: 'Saturn\'s largest moon, with a thick nitrogen atmosphere and methane lakes.' } },
-        { name: 'Rhea', color: 0xcccccc, radius: 0.05, orbitRadius: 2.0, speed: 1.6,
-          info: { period: '4.5 days', diameter: '1,527 km', desc: 'A heavily cratered moon of Saturn.' } }
-      ],
-      info: {
-        distance: '9.58 AU', period: '29.46 years', rotation: '10.7 hours', moons: 146,
-        desc: 'Famous for its spectacular rings of ice and rock, which span over 280,000 km but are only tens of metres thick.'
-      }
-    },
-    {
-      name: 'Uranus', color: 0xa2d8e8, radius: 0.9, orbitRadius: 25,
-      period: 84.01, initAngle: 2.2,
-      moons: [
-        { name: 'Titania', color: 0xbbbbbb, radius: 0.06, orbitRadius: 1.8, speed: 1.2,
-          info: { period: '8.7 days', diameter: '1,578 km', desc: 'The largest moon of Uranus, with deep canyons.' } }
-      ],
-      info: {
-        distance: '19.22 AU', period: '84.01 years', rotation: '17.2 hours (retrograde)', moons: 28,
-        desc: 'An ice giant that rotates on its side — likely the result of a massive ancient collision.'
-      }
-    },
-    {
-      name: 'Neptune', color: 0x3c5eb8, radius: 0.9, orbitRadius: 30,
-      period: 164.8, initAngle: 3.9,
-      moons: [
-        { name: 'Triton', color: 0xbbbbbb, radius: 0.06, orbitRadius: 1.8, speed: 1.2,
-          info: { period: '5.9 days', diameter: '2,707 km', desc: 'A moon with a retrograde orbit — likely a captured Kuiper Belt object.' } }
-      ],
-      info: {
-        distance: '30.05 AU', period: '164.8 years', rotation: '16.1 hours', moons: 16,
-        desc: 'The windiest planet, with winds exceeding 2,000 km/h.'
-      }
+      name: 'Proxima Centauri',
+      center: new V(50, 0, 0),
+      starMass: 50,
+      star: {
+        name: 'Proxima Centauri',
+        color: 0xff5533,
+        radius: 0.9,
+        type: 'Red dwarf (M5.5Ve)',
+        temp: '3,042 °C surface',
+        desc: 'The closest star to the Sun at 4.24 light-years. It is much smaller and cooler than our Sun, and hosts three confirmed planets.'
+      },
+      planets: PROXIMA_PLANETS
     }
   ];
 
-  function buildSolarSystem(){
-    clearRoot(solarRoot);
-    SOLAR.planets = [];
-    SOLAR.orbitLines = [];
-    SOLAR.sun = null;
-    SOLAR.sunGlow = null;
+  // ----- Burning star visual -----
+  function createBurningStar(color, radius){
+    const group = new THREE.Group();
 
-    // Sun
-    const sunMat = new THREE.MeshStandardMaterial({
-      color: 0xffdd44, emissive: 0xffaa00, emissiveIntensity: 3.0, roughness: 0.4
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 32, 24),
+      new THREE.MeshBasicMaterial({ color })
+    );
+    group.add(core);
+
+    const glow1 = new THREE.Mesh(
+      new THREE.SphereGeometry(radius * 1.2, 32, 24),
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.4, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(glow1);
+
+    const glow2 = new THREE.Mesh(
+      new THREE.SphereGeometry(radius * 1.6, 32, 24),
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(glow2);
+
+    const corona = new THREE.Mesh(
+      new THREE.SphereGeometry(radius * 2.5, 32, 24),
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.10, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    group.add(corona);
+
+    const sparkCount = 30;
+    const sparkGeo = new THREE.BufferGeometry();
+    const sparkPos = new Float32Array(sparkCount * 3);
+    for (let i = 0; i < sparkCount; i++){
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = radius * (1.3 + Math.random() * 0.9);
+      sparkPos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
+      sparkPos[i*3+1] = Math.cos(phi) * r;
+      sparkPos[i*3+2] = Math.sin(phi) * Math.sin(theta) * r;
+    }
+    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+    const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
+      color:0xffffee, size: radius * 0.08, transparent:true, opacity:0.85,
+      blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
+    }));
+    group.add(sparks);
+
+    const light = new THREE.PointLight(color, 2.2, radius * 60);
+    group.add(light);
+
+    group.userData.starFx = { core, glow1, glow2, corona, sparks, light, radius };
+    return group;
+  }
+
+  function animateStar(starGroup, time, dt){
+    const fx = starGroup.userData.starFx;
+    if (!fx) return;
+
+    fx.glow1.scale.setScalar(1 + Math.sin(time * 2.3) * 0.03);
+    fx.glow2.scale.setScalar(1 + Math.sin(time * 1.7 + 0.7) * 0.05);
+    fx.corona.scale.setScalar(1 + Math.sin(time * 1.1 + 1.4) * 0.07);
+
+    fx.glow1.material.opacity = 0.38 + Math.sin(time * 2.8) * 0.06;
+    fx.glow2.material.opacity = 0.20 + Math.sin(time * 1.9 + 0.5) * 0.04;
+    fx.corona.material.opacity = 0.09 + Math.sin(time * 1.4 + 1.0) * 0.02;
+
+    fx.light.intensity = 2.0 + Math.sin(time * 3.2) * 0.3;
+
+    fx.sparks.rotation.y += dt * 0.4;
+    fx.sparks.rotation.x += dt * 0.2;
+  }
+
+  // ----- Spacetime fabric -----
+  function buildFabric(){
+    const segments = 60;
+    const size = 240;
+    const half = size / 2;
+    const step = size / segments;
+
+    const verts = [];
+
+    for (let i = 0; i <= segments; i++){
+      const z = -half + i * step;
+      for (let j = 0; j < segments; j++){
+        const x1 = -half + j * step;
+        const x2 = x1 + step;
+        verts.push(x1, 0, z, x2, 0, z);
+      }
+    }
+    for (let i = 0; i <= segments; i++){
+      const x = -half + i * step;
+      for (let j = 0; j < segments; j++){
+        const z1 = -half + j * step;
+        const z2 = z1 + step;
+        verts.push(x, 0, z1, x, 0, z2);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+
+    const colors = new Float32Array(verts.length);
+    for (let i = 0; i < verts.length / 3; i++){
+      colors[i*3] = 0.25; colors[i*3+1] = 0.75; colors[i*3+2] = 0.94;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false
     });
-    const sun = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), sunMat);
-    sun.userData.solar = {
-      name: 'The Sun', isSun: true,
+
+    const mesh = new THREE.LineSegments(geo, mat);
+    mesh.position.y = -1;
+    mesh.renderOrder = -1;
+    solarRoot.add(mesh);
+
+    SOLAR.fabric = { mesh, geo, base: new Float32Array(verts), colors };
+  }
+
+  function updateFabric(){
+    if (!SOLAR.fabric) return;
+    const { geo, base } = SOLAR.fabric;
+    const pos = geo.attributes.position;
+    const col = geo.attributes.color;
+
+    const masses = [];
+    for (const sys of SOLAR.systems){
+      masses.push({ x: sys.data.center.x, z: sys.data.center.z, mass: sys.data.starMass });
+      for (const p of sys.planets){
+        masses.push({
+          x: sys.data.center.x + p.group.position.x,
+          z: sys.data.center.z + p.group.position.z,
+          mass: p.mass
+        });
+      }
+    }
+
+    const mc = masses.length;
+    for (let i = 0; i < pos.count; i++){
+      const x = base[i*3];
+      const z = base[i*3+2];
+      let dip = 0;
+      for (let mi = 0; mi < mc; mi++){
+        const m = masses[mi];
+        const dx = x - m.x;
+        const dz = z - m.z;
+        dip -= m.mass / (dx*dx + dz*dz + 5);
+      }
+      if (dip < -25) dip = -25;
+      pos.setY(i, dip);
+
+      const depth = Math.min(1, -dip / 18);
+      col.setXYZ(i,
+        0.25 + depth * 0.5,
+        0.75 - depth * 0.55,
+        0.94 - depth * 0.05
+      );
+    }
+
+    pos.needsUpdate = true;
+    col.needsUpdate = true;
+  }
+
+  // ----- Build the whole system -----
+  function buildStarSystem(sysData, sysIdx){
+    const sysGroup = new THREE.Group();
+    sysGroup.position.copy(sysData.center);
+    solarRoot.add(sysGroup);
+
+    const starGroup = createBurningStar(sysData.star.color, sysData.star.radius);
+    sysGroup.add(starGroup);
+
+    const starMeta = {
+      name: sysData.star.name,
+      isStar: true,
+      systemIndex: sysIdx,
+      focusTarget: starGroup,
       info: {
-        desc: 'A G-type main-sequence star at the centre of the solar system. It contains 99.8% of the total mass and generates energy by fusing hydrogen into helium.'
+        type: sysData.star.type,
+        temp: sysData.star.temp,
+        planets: sysData.planets.length,
+        desc: sysData.star.desc
       }
     };
-    solarRoot.add(sun);
-    SOLAR.sun = sun;
-
-    // Sun glow
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0xffaa33, transparent: true, opacity: 0.18,
-      blending: THREE.AdditiveBlending, depthWrite: false
+    starGroup.userData.solar = starMeta;
+    starGroup.traverse(child => {
+      if (child.isMesh || child.isPoints) child.userData.solar = starMeta;
     });
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(2.4, 32, 24), glowMat);
-    glow.raycast = () => {};
-    solarRoot.add(glow);
-    SOLAR.sunGlow = glow;
 
-    // Point light at the sun
-    const sunLight = new THREE.PointLight(0xffdd88, 2.0, 150);
-    solarRoot.add(sunLight);
+    const planets = [];
+    for (const p of sysData.planets){
+      const planetGroup = new THREE.Group();
+      sysGroup.add(planetGroup);
 
-    // Planets
-    PLANET_DATA.forEach(p => {
-      const group = new THREE.Group();
-      solarRoot.add(group);
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(p.radius, 28, 20),
+        new THREE.MeshStandardMaterial({
+          color: p.color, roughness: 0.72, metalness: 0.05,
+          emissive: p.color, emissiveIntensity: 0.1
+        })
+      );
+      planetGroup.add(mesh);
 
-      const mat = new THREE.MeshStandardMaterial({
-        color: p.color, roughness: 0.72, metalness: 0.05,
-        emissive: p.color, emissiveIntensity: 0.1
-      });
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 28, 20), mat);
-      mesh.userData.solar = { name: p.name, planet: true, info: p.info };
-      group.add(mesh);
+      const planetMeta = {
+        name: p.name, planet: true, systemIndex: sysIdx,
+        focusTarget: planetGroup, planetRadius: p.radius, info: p.info
+      };
+      mesh.userData.solar = planetMeta;
 
-      // Orbit line
-      const segs = 128, pts = [];
-      for (let i = 0; i <= segs; i++){
-        const a = i / segs * Math.PI * 2;
+      const pts = [];
+      for (let i = 0; i <= 128; i++){
+        const a = i / 128 * Math.PI * 2;
         pts.push(new THREE.Vector3(Math.cos(a) * p.orbitRadius, 0, Math.sin(a) * p.orbitRadius));
       }
       const orbitLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.22 })
       );
-      solarRoot.add(orbitLine);
-      SOLAR.orbitLines.push(orbitLine);
+      sysGroup.add(orbitLine);
 
-      // Saturn ring
       if (p.ring){
         const ringGeo = new THREE.RingGeometry(p.radius * 1.4, p.radius * 2.2, 64);
         const ringMat = new THREE.MeshBasicMaterial({
-          color: 0xd8c088, side: THREE.DoubleSide,
-          transparent: true, opacity: 0.55
+          color: 0xd8c088, side: THREE.DoubleSide, transparent: true, opacity: 0.55
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.rotation.x = Math.PI / 2 + 0.15;
-        group.add(ring);
+        planetGroup.add(ring);
       }
 
-      // Moons
       const moons = [];
       if (p.moons){
-        p.moons.forEach(m => {
-          const moonMat = new THREE.MeshStandardMaterial({
-            color: m.color, roughness: 0.85, metalness: 0.0,
-            emissive: m.color, emissiveIntensity: 0.08
-          });
-          const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.radius, 16, 12), moonMat);
-          moonMesh.userData.solar = {
-            name: m.name, moon: true, parentPlanet: p.name,
+        for (const m of p.moons){
+          const moonMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(m.radius, 16, 12),
+            new THREE.MeshStandardMaterial({
+              color: m.color, roughness: 0.85, emissive: m.color, emissiveIntensity: 0.08
+            })
+          );
+          planetGroup.add(moonMesh);
+
+          const moonMeta = {
+            name: m.name, moon: true, systemIndex: sysIdx,
+            focusTarget: moonMesh,
             info: Object.assign({ parent: p.name }, m.info)
           };
-          group.add(moonMesh);
+          moonMesh.userData.solar = moonMeta;
+
           moons.push({
             mesh: moonMesh, data: m,
             orbitRadius: m.orbitRadius, speed: m.speed,
             angle: Math.random() * Math.PI * 2
           });
-        });
+        }
       }
 
-      const angularSpeed = 0.6 / Math.pow(p.period, 0.4);
+      planetGroup.position.x = Math.cos(p.initAngle) * p.orbitRadius;
+      planetGroup.position.z = Math.sin(p.initAngle) * p.orbitRadius;
 
-      SOLAR.planets.push({
-        data: p, mesh, group, moons,
+      planets.push({
+        data: p, mesh, group: planetGroup, moons,
         orbitRadius: p.orbitRadius,
         angle: p.initAngle,
-        angularSpeed
+        angularSpeed: 0.6 / Math.pow(p.period, 0.4),
+        mass: 3 + p.radius * 6,
+        orbitLine
       });
+    }
 
-      group.position.x = Math.cos(p.initAngle) * p.orbitRadius;
-      group.position.z = Math.sin(p.initAngle) * p.orbitRadius;
+    SOLAR.systems.push({
+      data: sysData, group: sysGroup, starGroup,
+      starMass: sysData.starMass, planets
     });
+  }
 
-    defR = 60;
-    goal.target.set(0, 0, 0);
-    goal.theta = 0.5;
-    goal.phi = 1.15;
+  function buildSolarSystem(){
+    clearRoot(solarRoot);
+    SOLAR.systems = [];
+    SOLAR.fabric = null;
 
-    $('title').textContent = 'Solar system';
-    $('sub').textContent = 'Click any planet or moon for details · drag to orbit the camera · scroll to zoom';
+    buildFabric();
 
-    showCard('The Solar System', [
-      ['Star', 'The Sun (G-type)'],
-      ['Planets', '8'],
-      ['Age', '~4.6 billion years']
-    ], 'The Sun contains 99.8% of the solar system\'s mass. Each planet orbits under the Sun\'s gravity.');
+    for (let i = 0; i < SYSTEMS_DATA.length; i++){
+      buildStarSystem(SYSTEMS_DATA[i], i);
+    }
 
-    updateSolarControls();
+    defR = 190;
+    goal.theta = 0.5; goal.phi = 1.15;
   }
 
   function updateSolar(dt){
     const speed = +slider.value;
-    if (speed <= 0.01) return;
+    const time = performance.now() / 1000;
 
-    SOLAR.planets.forEach(p => {
-      p.angle += p.angularSpeed * speed * dt;
-      p.group.position.x = Math.cos(p.angle) * p.orbitRadius;
-      p.group.position.z = Math.sin(p.angle) * p.orbitRadius;
+    for (const sys of SOLAR.systems){
+      if (sys.starGroup) animateStar(sys.starGroup, time, dt);
 
-      p.mesh.rotation.y += 0.4 * speed * dt;
+      if (speed > 0.01){
+        for (const p of sys.planets){
+          p.angle += p.angularSpeed * speed * dt;
+          p.group.position.x = Math.cos(p.angle) * p.orbitRadius;
+          p.group.position.z = Math.sin(p.angle) * p.orbitRadius;
+          p.mesh.rotation.y += 0.4 * speed * dt;
 
-      p.moons.forEach(m => {
-        m.angle += m.speed * speed * dt * 0.5;
-        m.mesh.position.x = Math.cos(m.angle) * m.orbitRadius;
-        m.mesh.position.z = Math.sin(m.angle) * m.orbitRadius;
-      });
-    });
-
-    if (SOLAR.sun) SOLAR.sun.rotation.y += 0.15 * speed * dt;
-    if (SOLAR.sunGlow){
-      const pulse = 1 + Math.sin(performance.now() * 0.0008) * 0.04;
-      SOLAR.sunGlow.scale.setScalar(pulse);
+          for (const m of p.moons){
+            m.angle += m.speed * speed * dt * 0.5;
+            m.mesh.position.x = Math.cos(m.angle) * m.orbitRadius;
+            m.mesh.position.z = Math.sin(m.angle) * m.orbitRadius;
+          }
+        }
+      }
     }
+
+    if (SOLAR.showFabric) updateFabric();
   }
 
-  function showSolarInfo(body){
-    if (!body) return;
-    if (body.isSun){
-      showCard('The Sun', [
-        ['Type', 'G-type main-sequence'],
-        ['Radius', '696,000 km'],
-        ['Surface temperature', '5,500 °C'],
-        ['Mass', '333,000 Earths']
-      ], body.info.desc);
-    } else if (body.planet){
-      showCard(body.name, [
-        ['Distance from Sun', body.info.distance],
-        ['Orbital period', body.info.period],
-        ['Rotation period', body.info.rotation],
-        ['Moons', body.info.moons]
-      ], body.info.desc);
-    } else if (body.moon){
-      showCard(body.name, [
-        ['Orbits', body.info.parent],
-        ['Orbital period', body.info.period],
-        ['Diameter', body.info.diameter]
-      ], body.info.desc);
+  function showSolarInfo(info){
+    if (!info) return;
+    if (info.isStar){
+      showCard(info.name, [
+        ['Type', info.info.type],
+        ['Surface temp', info.info.temp],
+        ['Planets', info.info.planets]
+      ], info.info.desc);
+    } else if (info.planet){
+      showCard(info.name, [
+        ['Distance from star', info.info.distance],
+        ['Orbital period', info.info.period],
+        ['Rotation period', info.info.rotation],
+        ['Moons', info.info.moons]
+      ], info.info.desc);
+    } else if (info.moon){
+      showCard(info.name, [
+        ['Orbits', info.info.parent],
+        ['Orbital period', info.info.period],
+        ['Diameter', info.info.diameter]
+      ], info.info.desc);
     }
   }
 
   function focusSolar(body){
-    if (!body) return;
     const info = body.userData.solar;
     if (!info) return;
 
-    if (info.isSun){
-      focused = SOLAR.sun;
-      goal.radius = 8;
+    SOLAR.currentSystem = info.systemIndex;
+    updateSolarChips();
+
+    if (info.isStar){
+      focused = info.focusTarget;
+      goal.radius = info.systemIndex === 0 ? 70 : 22;
     } else if (info.planet){
-      const planet = SOLAR.planets.find(p => p.data.name === info.name);
-      if (planet){
-        focused = planet.mesh;
-        const maxMoonOrbit = planet.moons.reduce((mx, m) => Math.max(mx, m.orbitRadius), 0);
-        goal.radius = Math.max(planet.data.radius * 4, maxMoonOrbit * 2 + planet.data.radius * 2, 3);
-      }
+      focused = info.focusTarget;
+      goal.radius = Math.max(6, info.planetRadius * 10);
     } else if (info.moon){
-      focused = body;
-      goal.radius = 0.8;
+      focused = info.focusTarget;
+      goal.radius = 1.5;
     }
+
     showSolarInfo(info);
   }
 
-  function updateSolarControls(){
-    const ob = $('solarOrbits'), mo = $('solarMoons');
-    if (ob) ob.setAttribute('aria-pressed', SOLAR.showOrbits ? 'true' : 'false');
-    if (mo) mo.setAttribute('aria-pressed', SOLAR.showMoons ? 'true' : 'false');
+  function focusSystemView(idx){
+    focused = null;
+    SOLAR.currentSystem = idx;
+    updateSolarChips();
+
+    if (idx === -1){
+      goal.target.set(0, 0, 0);
+      goal.radius = 190;
+      showCard('Interstellar view', [
+        ['Distance', '4.24 light-years'],
+        ['Systems', '2'],
+        ['Note', 'Distance is compressed to fit both systems on screen']
+      ], 'The nearest star system to our Sun. In reality, Proxima is 4.24 light-years away — about 270,000 times the Earth–Sun distance.');
+    } else {
+      const sys = SOLAR.systems[idx];
+      if (!sys) return;
+      goal.target.copy(sys.data.center);
+      goal.radius = idx === 0 ? 70 : 22;
+      showCard(sys.data.name, [
+        ['Star', sys.data.star.name],
+        ['Type', sys.data.star.type],
+        ['Planets', sys.data.planets.length]
+      ], sys.data.star.desc);
+    }
   }
+
+  function updateSolarChips(){
+    document.querySelectorAll('#solarSystems [data-sys]').forEach(b => {
+      b.setAttribute('aria-pressed', parseInt(b.dataset.sys,10) === SOLAR.currentSystem ? 'true' : 'false');
+    });
+  }
+
+  $('solarSystems').addEventListener('click', e => {
+    const b = e.target.closest('[data-sys]');
+    if (!b) return;
+    focusSystemView(parseInt(b.dataset.sys, 10));
+  });
 
   $('solarOrbits').addEventListener('click', ()=>{
     SOLAR.showOrbits = !SOLAR.showOrbits;
-    SOLAR.orbitLines.forEach(l => l.visible = SOLAR.showOrbits);
-    updateSolarControls();
+    SOLAR.systems.forEach(sys => sys.planets.forEach(p => p.orbitLine.visible = SOLAR.showOrbits));
+    $('solarOrbits').setAttribute('aria-pressed', SOLAR.showOrbits ? 'true' : 'false');
   });
+
   $('solarMoons').addEventListener('click', ()=>{
     SOLAR.showMoons = !SOLAR.showMoons;
-    SOLAR.planets.forEach(p => p.moons.forEach(m => m.mesh.visible = SOLAR.showMoons));
-    updateSolarControls();
+    SOLAR.systems.forEach(sys => sys.planets.forEach(p => p.moons.forEach(m => m.mesh.visible = SOLAR.showMoons)));
+    $('solarMoons').setAttribute('aria-pressed', SOLAR.showMoons ? 'true' : 'false');
   });
-  $('solarReset').addEventListener('click', ()=>{
-    focused = null;
-    goal.target.set(0, 0, 0);
-    goal.radius = 60;
-    goal.theta = 0.5;
-    goal.phi = 1.15;
-    card.classList.remove('on');
+
+  $('solarFabric').addEventListener('click', ()=>{
+    SOLAR.showFabric = !SOLAR.showFabric;
+    if (SOLAR.fabric) SOLAR.fabric.mesh.visible = SOLAR.showFabric;
+    $('solarFabric').setAttribute('aria-pressed', SOLAR.showFabric ? 'true' : 'false');
   });
 
   // ---------- Periodic table ----------
@@ -980,12 +1175,10 @@ body.focus #menuWrap{display:none!important}
   function isMovable(sec){
     if (sec === 'lan' || sec === 'act') return true;
     const col = parseInt(sec.slice(1), 10);
-    if (col === 1) return true;
-    if (col === 18) return true;
+    if (col === 1 || col === 18) return true;
     if (col >= 3 && col <= 12) return true;
     return false;
   }
-
   const SECTION_DIR = {};
   for(let c = 1; c <= 18; c++){
     if(c <= 2) SECTION_DIR['c' + c] = {x:-1, y:0, z:0};
@@ -994,16 +1187,15 @@ body.focus #menuWrap{display:none!important}
   }
   SECTION_DIR.lan = {x:0, y:0, z:1.3};
   SECTION_DIR.act = {x:0, y:0, z:1.3};
-
   function familyOfCol(col){
     if(col <= 2) return 'left';
     if(col <= 12) return 'up';
     return 'right';
   }
-
   const SECTION_INFO = {
     c1:{name:'Group 1 · Alkali metals', desc:'Soft, highly reactive metals that react vigorously with water.'},
     c2:{name:'Group 2 · Alkaline earth metals', desc:'Reactive metals, harder than group 1.'},
+    d:{name:'Transition metals', desc:'Hard, dense metals with variable oxidation states.'},
     c3:{name:'Group 3 · Scandium group', desc:'Start of the f-block series.'},
     c4:{name:'Group 4 · Titanium group', desc:'Light, corrosion-resistant metals.'},
     c5:{name:'Group 5 · Vanadium group', desc:'Vanadium, niobium, tantalum.'},
@@ -1032,7 +1224,6 @@ body.focus #menuWrap{display:none!important}
       u.selX = 0; u.selY = 0; u.selZ = 0; u.selScale = 1;
     });
     if(!selectedSection || !selectedZ) return;
-
     if (!isMovable(selectedSection)){
       tableCells.forEach(o=>{
         if (o.userData.Z === selectedZ){
@@ -1042,17 +1233,14 @@ body.focus #menuWrap{display:none!important}
       });
       return;
     }
-
     const dir = SECTION_DIR[selectedSection];
     if(!dir) return;
-
     const isLanAct = selectedSection === 'lan' || selectedSection === 'act';
     const selCol = isLanAct ? null : parseInt(selectedSection.slice(1), 10);
     const fam = isLanAct ? selectedSection : familyOfCol(selCol);
 
     tableCells.forEach(o=>{
       const u = o.userData;
-
       if(u.section === selectedSection){
         const extra = (u.Z === selectedZ) ? 1.2 : 0;
         u.selX = dir.x * (SECTION_DIST + extra);
@@ -1062,12 +1250,10 @@ body.focus #menuWrap{display:none!important}
         return;
       }
       if(isLanAct) return;
-
       const col = posOf(u.Z)[0];
       if(familyOfCol(col) !== fam) return;
       const dcol = Math.abs(col - selCol);
       if(dcol < 1 || dcol > 4) return;
-
       const falloff = 1 - dcol / 5;
       const strength = falloff * falloff * 0.55;
       u.selX = dir.x * strength * SECTION_DIST;
@@ -1181,11 +1367,7 @@ body.focus #menuWrap{display:none!important}
       const m=new THREE.Mesh(geo,[label,label,body,body,label,label]);
       const bx=tX(p[0]), by=tY(p[1]);
       m.position.set(bx, by, 0);
-      m.userData={
-        kind:'el', Z, hover:1, lift:0, body,
-        section:sectionOf(Z), baseX:bx, baseY:by,
-        selX:0, selY:0, selZ:0, selScale:1
-      };
+      m.userData={ kind:'el', Z, hover:1, lift:0, body, section:sectionOf(Z), baseX:bx, baseY:by, selX:0, selY:0, selZ:0, selScale:1 };
       tableRoot.add(m); tableCells.push(m);
     });
     $('tableLegend').innerHTML=CATS.map((n,i)=>'<span><i style="background:'+HEX(CATC[i])+'"></i>'+n+'</span>').join('');
@@ -1240,6 +1422,24 @@ body.focus #menuWrap{display:none!important}
     } else if(solar){
       buildSolarSystem();
       enterView();
+      const solCenter = SOLAR.systems[0].data.center;
+      goal.target.copy(solCenter);
+      goal.radius = 70;
+      cam.radius = 70;
+      cam.target.copy(solCenter);
+      cam.theta = 0.4;
+      cam.phi = 1.2;
+      goal.theta = 0.4;
+      goal.phi = 1.2;
+      SOLAR.currentSystem = 0;
+      updateSolarChips();
+      $('title').textContent='Solar system';
+      $('sub').textContent='Drag to orbit · scroll to zoom out and see Proxima Centauri · click a body for details';
+      showCard('Solar System', [
+        ['Star', 'The Sun (G2V)'],
+        ['Planets', '8'],
+        ['Nearest star', 'Proxima Centauri (4.24 ly)']
+      ], 'Zoom out to reveal Proxima Centauri and the fabric of spacetime sagging under each body\'s gravity.');
     } else {
       buildMol(curIdx[v]);
       goal.theta=0.6; goal.phi=1.2;
@@ -1337,7 +1537,7 @@ body.focus #menuWrap{display:none!important}
 
   // ---------- Camera, zoom, pan and picking ----------
   const cam={theta:0.6, phi:1.2, radius:14, target:new V()}, goal={theta:0.6, phi:1.2, radius:14, target:new V()};
-  const R_MIN=1.5, R_MAX=200;
+  const R_MIN=1.5, R_MAX=320;
   let dragging=false, moved=0, mode='orbit', hovered=null, focused=null, lastHover=null, userZoomed=false, pinch=null;
   let lastX=0, lastY=0;
   const ptrs=new Map();
@@ -1347,11 +1547,13 @@ body.focus #menuWrap{display:none!important}
     if(view==='table') return tableCells;
     if(view==='solar'){
       const items = [];
-      if (SOLAR.sun) items.push(SOLAR.sun);
-      SOLAR.planets.forEach(p => {
-        items.push(p.mesh);
-        p.moons.forEach(m => items.push(m.mesh));
-      });
+      for (const sys of SOLAR.systems){
+        items.push(sys.starGroup);
+        for (const p of sys.planets){
+          items.push(p.mesh);
+          for (const m of p.moons) items.push(m.mesh);
+        }
+      }
       return items;
     }
     if(view!=='atom') return spaceFill ? molAtoms : molAtoms.concat(molBonds);
@@ -1421,10 +1623,7 @@ body.focus #menuWrap{display:none!important}
       if (hit && hit.object.userData.solar){
         focusSolar(hit.object);
       } else {
-        focused = null;
-        goal.target.set(0, 0, 0);
-        goal.radius = defR;
-        card.classList.remove('on');
+        focusSystemView(SOLAR.currentSystem >= 0 ? SOLAR.currentSystem : -1);
       }
     } else {
       hit ? focus(hit.object) : reset();
@@ -1473,6 +1672,12 @@ body.focus #menuWrap{display:none!important}
       updateSolar(dt);
     }
 
+    // Solar auto-pull when zoomed way out (reveals both systems)
+    if (view === 'solar' && !focused && goal.radius > 160){
+      goal.target.x *= 0.97;
+      goal.target.z *= 0.97;
+    }
+
     const root=view==='atom'?atomRoot:view==='table'?tableRoot:view==='solar'?solarRoot:molRoot;
     const k0=Math.min(1,(t-born)/0.5), s=reduceMotion?1:1-Math.pow(1-k0,3); root.scale.setScalar(0.4+0.6*s);
 
@@ -1500,31 +1705,26 @@ body.focus #menuWrap{display:none!important}
         const on = (hv === o);
         u.hover += ((on ? 1.05 : 1) - u.hover) * kScale;
         u.lift  += ((on ? 0.24 : 0) - u.lift)  * kPos;
-
         const tx = u.baseX + u.selX;
         const ty = u.baseY + u.selY;
         const tz = u.selZ + u.lift;
-
         o.position.x += (tx - o.position.x) * kPos;
         o.position.y += (ty - o.position.y) * kPos;
         o.position.z += (tz - o.position.z) * kPos;
-
         const targetScale = grow * u.selScale * u.hover;
         const cur = o.scale.x;
         o.scale.setScalar(cur + (targetScale - cur) * kScale);
-
         const eTarget = clamp((u.hover - 1) * 4 + (u.Z === selectedZ ? 0.45 : 0), 0, 0.8);
         u.body.emissiveIntensity += (eTarget - u.body.emissiveIntensity) * kScale;
       });
     } else if(view==='solar'){
-      // Subtle hover glow on planets/moons
       const hv = hovered ? hovered.object : null;
       list.forEach(o=>{
-        const mat = o.material;
-        if (!mat || mat.emissiveIntensity === undefined) return;
-        const base = o.userData.solar && o.userData.solar.isSun ? 3.0 : 0.1;
-        const target = (hv === o) ? base + 0.4 : base;
-        mat.emissiveIntensity += (target - mat.emissiveIntensity) * 0.15;
+        if (o.isMesh && o.material && o.material.emissiveIntensity !== undefined){
+          const base = (o.userData.solar && o.userData.solar.isStar) ? 0.4 : 0.1;
+          const target = (hv === o) ? base + 0.4 : base;
+          o.material.emissiveIntensity += (target - o.material.emissiveIntensity) * 0.15;
+        }
       });
     } else {
       list.forEach(o=>{
@@ -1551,8 +1751,6 @@ body.focus #menuWrap{display:none!important}
           else card.classList.remove('on');
         } else card.classList.remove('on');
       }
-    } else if(view==='solar'){
-      // Info card is updated on click, not hover
     }
 
     renderer.render(scene,camera);
